@@ -1,0 +1,1507 @@
+# TÂCHE 2 - SURVEILLANCE D'ALERTES ET RÉPONSE AUX INCIDENTS
+
+![Status](https://img.shields.io/badge/Status-Active-green)
+![Duration](https://img.shields.io/badge/Durée-7%20jours-blue)
+![Difficulty](https://img.shields.io/badge/Difficulté-Avancé-red)
+![Version](https://img.shields.io/badge/Version-1.0-brightgreen)
+
+**Dépôt GitHub**: `FUTURE_CS_02`  
+**Durée estimée**: 7 jours  
+
+## 🛠️ Technologies & Outils
+
+![ELK Stack](https://img.shields.io/badge/ELK%20Stack-8.8.0-orange)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.8.0-yellow)
+![Logstash](https://img.shields.io/badge/Logstash-8.8.0-green)
+![Kibana](https://img.shields.io/badge/Kibana-8.8.0-purple)
+![Splunk](https://img.shields.io/badge/Splunk-Enterprise-blue)
+![Python](https://img.shields.io/badge/Python-3.8+-blue)
+![Docker](https://img.shields.io/badge/Docker-Latest-blue)
+
+---
+
+## 📋 OVERVIEW DE LA TÂCHE
+
+![Security](https://img.shields.io/badge/Domain-Cybersecurity-red)
+![SIEM](https://img.shields.io/badge/Type-SIEM-orange)
+![SOC](https://img.shields.io/badge/Operations-SOC-purple)
+
+### 🎯 Objectifs
+- ![Config](https://img.shields.io/badge/-Configuration-lightgrey) Configurer un système SIEM (Security Information and Event Management)
+- ![Analysis](https://img.shields.io/badge/-Analyse-lightblue) Analyser des logs de sécurité en temps réel
+- ![Classification](https://img.shields.io/badge/-Classification-yellow) Classifier les incidents de sécurité par niveau de criticité
+- ![Playbooks](https://img.shields.io/badge/-Playbooks-green) Développer des playbooks de réponse aux incidents
+- ![Dashboard](https://img.shields.io/badge/-Dashboard-purple) Créer des dashboards de surveillance
+
+### 🚀 Compétences développées
+- ![Log Analysis](https://img.shields.io/badge/Skill-Log%20Analysis-blue)
+- ![SIEM Operations](https://img.shields.io/badge/Skill-SIEM%20Operations-green)
+- ![Incident Response](https://img.shields.io/badge/Skill-Incident%20Response-red)
+- ![SOC Operations](https://img.shields.io/badge/Skill-SOC%20Operations-purple)
+- ![Threat Detection](https://img.shields.io/badge/Skill-Threat%20Detection-orange)
+- ![Security Monitoring](https://img.shields.io/badge/Skill-Security%20Monitoring-yellow)
+
+---
+
+## 🛠️ PHASE 1: CONFIGURATION DE L'ENVIRONNEMENT SIEM
+
+![Phase](https://img.shields.io/badge/Phase-1-blue)
+![Infrastructure](https://img.shields.io/badge/Type-Infrastructure-green)
+
+### 1.1 Installation ELK Stack avec Docker
+
+![Docker Compose](https://img.shields.io/badge/Config-Docker%20Compose-blue)
+![Status](https://img.shields.io/badge/Status-Ready-green)
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    networks:
+      - elk
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    container_name: logstash
+    ports:
+      - "5044:5044"
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    volumes:
+      - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./logs:/usr/share/logstash/logs:ro
+      - ./config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx512m -Xms512m"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      SERVER_NAME: kibana
+      SERVER_HOST: "0.0.0.0"
+    volumes:
+      - ./config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.8.0
+    container_name: filebeat
+    user: root
+    volumes:
+      - ./config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./logs:/var/log/security:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+      - logstash
+
+volumes:
+  elasticsearch_data:
+
+networks:
+  elk:
+    driver: bridge
+```
+
+### 1.2 Configuration Logstash
+
+![Logstash](https://img.shields.io/badge/Component-Logstash-green)
+![Processing](https://img.shields.io/badge/Type-Log%20Processing-orange)
+![Security](https://img.shields.io/badge/Focus-Security%20Detection-red)
+
+```ruby
+# config/logstash.conf
+input {
+  beats {
+    port => 5044
+  }
+  
+  file {
+    path => "/usr/share/logstash/logs/apache_access.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+    codec => "plain"
+    tags => ["apache", "access"]
+  }
+  
+  file {
+    path => "/usr/share/logstash/logs/auth.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+    tags => ["system", "auth"]
+  }
+  
+  file {
+    path => "/usr/share/logstash/logs/firewall.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+    tags => ["network", "firewall"]
+  }
+}
+
+filter {
+  # Filtres pour logs Apache
+  if "apache" in [tags] {
+    grok {
+      match => { 
+        "message" => "%{COMBINEDAPACHELOG}" 
+      }
+    }
+    
+    date {
+      match => [ "timestamp", "dd/MMM/yyyy:HH:mm:ss Z" ]
+    }
+    
+    mutate {
+      convert => { "response" => "integer" }
+      convert => { "bytes" => "integer" }
+    }
+    
+    # Détection d'attaques communes
+    if [request] =~ /(?i)(union|select|script|alert|javascript|<|>)/ {
+      mutate {
+        add_tag => ["suspicious", "potential_attack"]
+        add_field => { "threat_level" => "high" }
+      }
+    }
+    
+    # Classification des codes de réponse
+    if [response] >= 400 and [response] < 500 {
+      mutate {
+        add_tag => ["client_error"]
+        add_field => { "severity" => "medium" }
+      }
+    } else if [response] >= 500 {
+      mutate {
+        add_tag => ["server_error"]
+        add_field => { "severity" => "high" }
+      }
+    }
+  }
+  
+  # Filtres pour logs d'authentification
+  if "auth" in [tags] {
+    grok {
+      match => { 
+        "message" => "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} %{WORD:service}(?:\[%{POSINT:pid}\])?: %{GREEDYDATA:auth_message}" 
+      }
+    }
+    
+    # Détection de tentatives de brute force
+    if "Failed password" in [message] {
+      grok {
+        match => {
+          "auth_message" => "Failed password for (?<failed_user>\w+) from %{IP:source_ip} port %{INT:source_port}"
+        }
+      }
+      mutate {
+        add_tag => ["failed_login", "brute_force_attempt"]
+        add_field => { "threat_level" => "high" }
+        add_field => { "severity" => "high" }
+      }
+    }
+    
+    # Détection de connexions suspectes
+    if "Accepted password" in [message] {
+      grok {
+        match => {
+          "auth_message" => "Accepted password for (?<successful_user>\w+) from %{IP:source_ip} port %{INT:source_port}"
+        }
+      }
+      mutate {
+        add_tag => ["successful_login"]
+        add_field => { "severity" => "info" }
+      }
+    }
+  }
+  
+  # Filtres pour logs firewall
+  if "firewall" in [tags] {
+    grok {
+      match => {
+        "message" => "%{TIMESTAMP_ISO8601:timestamp} %{WORD:action} %{IP:source_ip}:%{INT:source_port} -> %{IP:dest_ip}:%{INT:dest_port} %{WORD:protocol}"
+      }
+    }
+    
+    if [action] == "DENY" or [action] == "DROP" {
+      mutate {
+        add_tag => ["blocked_connection"]
+        add_field => { "severity" => "medium" }
+      }
+    }
+    
+    # Détection de scans de ports
+    if [dest_port] in ["22", "23", "3389", "445", "135"] {
+      mutate {
+        add_tag => ["port_scan", "reconnaissance"]
+        add_field => { "threat_level" => "medium" }
+      }
+    }
+  }
+  
+  # Enrichissement GeoIP
+  if [source_ip] {
+    geoip {
+      source => "source_ip"
+      target => "geoip"
+    }
+  }
+  
+  # Ajout de métadonnées
+  mutate {
+    add_field => { "[@metadata][index_name]" => "security-logs-%{+YYYY.MM.dd}" }
+    add_field => { "event_processed_time" => "%{@timestamp}" }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["elasticsearch:9200"]
+    index => "%{[@metadata][index_name]}"
+    template_name => "security_logs"
+    template => "/usr/share/logstash/templates/security_template.json"
+  }
+  
+  # Output conditionnel pour alertes critiques
+  if [threat_level] == "high" {
+    elasticsearch {
+      hosts => ["elasticsearch:9200"]
+      index => "security-alerts-%{+YYYY.MM.dd}"
+    }
+  }
+  
+  stdout { 
+    codec => rubydebug 
+  }
+}
+```
+
+### 1.3 Configuration Kibana
+
+![Kibana](https://img.shields.io/badge/Component-Kibana-purple)
+![Visualization](https://img.shields.io/badge/Type-Visualization-blue)
+
+```yaml
+# config/kibana.yml
+server.name: kibana
+server.host: "0.0.0.0"
+server.port: 5601
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: ""
+elasticsearch.password: ""
+
+# Configuration des dashboards par défaut
+kibana.defaultAppId: "dashboard"
+server.maxPayloadBytes: 1048576
+
+# Paramètres de sécurité
+server.xsrf.whitelist: ["/api/security/v1/login"]
+```
+
+### 1.4 Template Elasticsearch pour les logs
+
+![Elasticsearch](https://img.shields.io/badge/Component-Elasticsearch-yellow)
+![Mapping](https://img.shields.io/badge/Type-Index%20Mapping-green)
+
+```json
+{
+  "index_patterns": ["security-logs-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "index.refresh_interval": "5s"
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "source_ip": {
+          "type": "ip"
+        },
+        "dest_ip": {
+          "type": "ip"
+        },
+        "response": {
+          "type": "integer"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "threat_level": {
+          "type": "keyword"
+        },
+        "severity": {
+          "type": "keyword"
+        },
+        "tags": {
+          "type": "keyword"
+        },
+        "geoip": {
+          "properties": {
+            "location": {
+              "type": "geo_point"
+            },
+            "country_name": {
+              "type": "keyword"
+            },
+            "city_name": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## 📊 PHASE 2: GÉNÉRATION DE DONNÉES D'EXEMPLE
+
+![Phase](https://img.shields.io/badge/Phase-2-blue)
+![Data Generation](https://img.shields.io/badge/Type-Data%20Generation-orange)
+![Python](https://img.shields.io/badge/Language-Python-green)
+
+### 2.1 Générateur de logs Apache
+
+![Apache](https://img.shields.io/badge/Log%20Type-Apache-red)
+![Security](https://img.shields.io/badge/Focus-Security%20Events-yellow)
+
+```python
+#!/usr/bin/env python3
+# scripts/generate_apache_logs.py
+
+import random
+import datetime
+from faker import Faker
+import json
+
+class ApacheLogGenerator:
+    def __init__(self):
+        self.fake = Faker()
+        self.suspicious_payloads = [
+            "' OR '1'='1",
+            "<script>alert('xss')</script>",
+            "../../etc/passwd",
+            "UNION SELECT * FROM users",
+            "../../../windows/system32",
+            "<img src=x onerror=alert(1)>",
+            "'; DROP TABLE users; --",
+            "%3Cscript%3Ealert%28%27XSS%27%29%3C/script%3E"
+        ]
+        
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+            "curl/7.68.0",
+            "python-requests/2.25.1",
+            "Nikto/2.1.6"
+        ]
+        
+        self.normal_paths = [
+            "/", "/index.html", "/about.html", "/contact.php",
+            "/login.php", "/dashboard.php", "/api/users",
+            "/images/logo.png", "/css/style.css", "/js/script.js"
+        ]
+        
+        self.attack_paths = [
+            "/admin/", "/phpmyadmin/", "/.env",
+            "/wp-admin/", "/config.php", "/backup/"
+        ]
+    
+    def generate_normal_log(self):
+        """Génération d'un log normal"""
+        ip = self.fake.ipv4()
+        timestamp = datetime.datetime.now().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        method = random.choice(["GET", "POST", "PUT"])
+        path = random.choice(self.normal_paths)
+        
+        if random.random() < 0.1:  # 10% de chance d'avoir des paramètres
+            params = f"?id={random.randint(1, 100)}&page={random.randint(1, 10)}"
+            path += params
+        
+        status_code = random.choices(
+            [200, 301, 302, 404, 500],
+            weights=[80, 5, 5, 8, 2]
+        )[0]
+        
+        response_size = random.randint(500, 50000)
+        user_agent = random.choice(self.user_agents[:3])  # Navigateurs normaux
+        referer = random.choice(["-", "https://google.com", "https://example.com"])
+        
+        log_line = f'{ip} - - [{timestamp}] "{method} {path} HTTP/1.1" {status_code} {response_size} "{referer}" "{user_agent}"'
+        return log_line
+    
+    def generate_attack_log(self):
+        """Génération d'un log d'attaque"""
+        # IPs suspectes (souvent des VPN, Tor, etc.)
+        suspicious_ips = [
+            "185.220.100." + str(random.randint(1, 254)),
+            "195.123.221." + str(random.randint(1, 254)),
+            "77.247.181." + str(random.randint(1, 254))
+        ]
+        
+        ip = random.choice(suspicious_ips)
+        timestamp = datetime.datetime.now().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        method = random.choice(["GET", "POST"])
+        
+        # Type d'attaque
+        attack_type = random.choice(["sqli", "xss", "path_traversal", "admin_access"])
+        
+        if attack_type == "sqli":
+            payload = random.choice(self.suspicious_payloads[:4])
+            path = f"/search.php?q={payload}"
+        elif attack_type == "xss":
+            payload = random.choice(self.suspicious_payloads[1:3])
+            path = f"/comment.php?msg={payload}"
+        elif attack_type == "path_traversal":
+            payload = random.choice(self.suspicious_payloads[2:5])
+            path = f"/download.php?file={payload}"
+        else:  # admin_access
+            path = random.choice(self.attack_paths)
+        
+        status_code = random.choices([200, 403, 404, 500], weights=[20, 40, 30, 10])[0]
+        response_size = random.randint(100, 5000)
+        user_agent = random.choice(self.user_agents[3:])  # Outils d'attaque
+        
+        log_line = f'{ip} - - [{timestamp}] "{method} {path} HTTP/1.1" {status_code} {response_size} "-" "{user_agent}"'
+        return log_line
+    
+    def generate_logs(self, num_normal=1000, num_attacks=100, filename="logs/apache_access.log"):
+        """Génération d'un fichier de logs mixte"""
+        logs = []
+        
+        # Logs normaux
+        for _ in range(num_normal):
+            logs.append(self.generate_normal_log())
+        
+        # Logs d'attaque
+        for _ in range(num_attacks):
+            logs.append(self.generate_attack_log())
+        
+        # Mélange et tri par timestamp (approximatif)
+        random.shuffle(logs)
+        
+        with open(filename, 'w') as f:
+            for log in logs:
+                f.write(log + '\n')
+        
+        print(f"[+] {len(logs)} logs générés dans {filename}")
+        return logs
+
+# Utilisation
+if __name__ == "__main__":
+    import os
+    os.makedirs("logs", exist_ok=True)
+    
+    generator = ApacheLogGenerator()
+    generator.generate_logs(num_normal=2000, num_attacks=200)
+```
+
+### 2.2 Générateur de logs d'authentification
+
+![Authentication](https://img.shields.io/badge/Log%20Type-Authentication-blue)
+![Brute Force](https://img.shields.io/badge/Detection-Brute%20Force-red)
+
+```python
+#!/usr/bin/env python3
+# scripts/generate_auth_logs.py
+
+import random
+import datetime
+from faker import Faker
+
+class AuthLogGenerator:
+    def __init__(self):
+        self.fake = Faker()
+        self.usernames = [
+            "admin", "root", "user", "test", "guest",
+            "administrator", "service", "backup", "ftp"
+        ]
+        self.common_passwords = [
+            "password", "123456", "admin", "qwerty",
+            "letmein", "welcome", "monkey", "dragon"
+        ]
+        
+        self.services = ["sshd", "sudo", "login", "su"]
+        self.hostnames = ["server01", "web-server", "db-server"]
+    
+    def generate_failed_login(self):
+        """Génération d'une tentative de connexion échouée"""
+        timestamp = datetime.datetime.now().strftime("%b %d %H:%M:%S")
+        hostname = random.choice(self.hostnames)
+        service = random.choice(self.services)
+        pid = random.randint(1000, 9999)
+        username = random.choice(self.usernames)
+        source_ip = self.fake.ipv4()
+        source_port = random.randint(1024, 65535)
+        
+        log_line = f"{timestamp} {hostname} {service}[{pid}]: Failed password for {username} from {source_ip} port {source_port} ssh2"
+        return log_line
+    
+    def generate_successful_login(self):
+        """Génération d'une connexion réussie"""
+        timestamp = datetime.datetime.now().strftime("%b %d %H:%M:%S")
+        hostname = random.choice(self.hostnames)
+        service = random.choice(self.services)
+        pid = random.randint(1000, 9999)
+        username = random.choice(self.usernames[:3])  # Utilisateurs légitimes
+        source_ip = self.fake.ipv4()
+        source_port = random.randint(1024, 65535)
+        
+        log_line = f"{timestamp} {hostname} {service}[{pid}]: Accepted password for {username} from {source_ip} port {source_port} ssh2"
+        return log_line
+    
+    def generate_brute_force_sequence(self, target_user="admin", attempts=20):
+        """Génération d'une séquence de brute force"""
+        attacker_ip = "192.168.1." + str(random.randint(100, 200))
+        logs = []
+        
+        # Tentatives échouées
+        for i in range(attempts - 1):
+            timestamp = datetime.datetime.now().strftime("%b %d %H:%M:%S")
+            hostname = random.choice(self.hostnames)
+            service = "sshd"
+            pid = random.randint(1000, 9999)
+            source_port = random.randint(1024, 65535)
+            
+            log_line = f"{timestamp} {hostname} {service}[{pid}]: Failed password for {target_user} from {attacker_ip} port {source_port} ssh2"
+            logs.append(log_line)
+        
+        # Dernière tentative réussie (optionnel)
+        if random.random() < 0.1:  # 10% de chance de réussir
+            timestamp = datetime.datetime.now().strftime("%b %d %H:%M:%S")
+            hostname = random.choice(self.hostnames)
+            service = "sshd"
+            pid = random.randint(1000, 9999)
+            source_port = random.randint(1024, 65535)
+            
+            log_line = f"{timestamp} {hostname} {service}[{pid}]: Accepted password for {target_user} from {attacker_ip} port {source_port} ssh2"
+            logs.append(log_line)
+        
+        return logs
+    
+    def generate_logs(self, filename="logs/auth.log"):
+        """Génération du fichier de logs d'authentification"""
+        logs = []
+        
+        # Logs normaux (connexions légitimes)
+        for _ in range(100):
+            logs.append(self.generate_successful_login())
+        
+        # Tentatives échouées isolées
+        for _ in range(50):
+            logs.append(self.generate_failed_login())
+        
+        # Séquences de brute force
+        for _ in range(5):
+            brute_force_logs = self.generate_brute_force_sequence()
+            logs.extend(brute_force_logs)
+        
+        # Tri approximatif par timestamp
+        random.shuffle(logs)
+        
+        with open(filename, 'w') as f:
+            for log in logs:
+                f.write(log + '\n')
+        
+        print(f"[+] {len(logs)} logs d'auth générés dans {filename}")
+        return logs
+
+# Utilisation
+if __name__ == "__main__":
+    import os
+    os.makedirs("logs", exist_ok=True)
+    
+    generator = AuthLogGenerator()
+    generator.generate_logs()
+```
+
+### 2.3 Générateur de logs firewall
+
+![Firewall](https://img.shields.io/badge/Log%20Type-Firewall-orange)
+![Port Scan](https://img.shields.io/badge/Detection-Port%20Scan-red)
+
+```python
+#!/usr/bin/env python3
+# scripts/generate_firewall_logs.py
+
+import random
+import datetime
+from faker import Faker
+
+class FirewallLogGenerator:
+    def __init__(self):
+        self.fake = Faker()
+        self.protocols = ["TCP", "UDP", "ICMP"]
+        self.actions = ["ALLOW", "DENY", "DROP"]
+        
+        # Ports communs
+        self.common_ports = {
+            "web": [80, 443, 8080, 8443],
+            "ssh": [22, 2222],
+            "database": [3306, 5432, 1433, 27017],
+            "email": [25, 110, 143, 587, 993, 995],
+            "dns": [53],
+            "ftp": [21, 990],
+            "remote": [3389, 5900, 23]
+        }
+        
+        # IPs suspectes pour simulations d'attaques
+        self.suspicious_ranges = [
+            "185.220.100.", "195.123.221.", "77.247.181.",
+            "192.42.116.", "171.25.193.", "198.96.155."
+        ]
+    
+    def generate_normal_traffic(self):
+        """Génération de trafic réseau normal"""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        action = "ALLOW"
+        source_ip = self.fake.ipv4_private()
+        dest_ip = self.fake.ipv4()
+        protocol = random.choice(self.protocols)
+        
+        # Trafic web normal
+        if random.random() < 0.6:
+            source_port = random.randint(32768, 65535)
+            dest_port = random.choice(self.common_ports["web"])
+        # Trafic DNS
+        elif random.random() < 0.3:
+            source_port = random.randint(32768, 65535)
+            dest_port = 53
+            protocol = "UDP"
+        # Autre trafic légitime
+        else:
+            source_port = random.randint(1024, 65535)
+            dest_port = random.choice([22, 443, 993, 587])
+        
+        log_line = f"{timestamp} {action} {source_ip}:{source_port} -> {dest_ip}:{dest_port} {protocol}"
+        return log_line
+    
+    def generate_blocked_traffic(self):
+        """Génération de trafic bloqué/suspect"""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        action = random.choice(["DENY", "DROP"])
+        
+        # IP suspecte
+        source_ip = random.choice(self.suspicious_ranges) + str(random.randint(1, 254))
+        dest_ip = self.fake.ipv4_private()
+        protocol = random.choice(self.protocols)
+        
+        source_port = random.randint(1024, 65535)
+        
+        # Types d'attaques simulées
+        attack_type = random.choice(["port_scan", "service_probe", "brute_force"])
+        
+        if attack_type == "port_scan":
+            # Scan de ports séquentiel
+            dest_port = random.choice(range(1, 1024))
+        elif attack_type == "service_probe":
+            # Tentative d'accès aux services sensibles
+            dest_port = random.choice([22, 23, 135, 445, 1433, 3389])
+        else:  # brute_force
+            # Tentatives multiples sur SSH/RDP
+            dest_port = random.choice([22, 3389])
+        
+        log_line = f"{timestamp} {action} {source_ip}:{source_port} -> {dest_ip}:{dest_port} {protocol}"
+        return log_line
+    
+    def generate_port_scan_sequence(self, scanner_ip=None):
+        """Génération d'une séquence de scan de ports"""
+        if not scanner_ip:
+            scanner_ip = random.choice(self.suspicious_ranges) + str(random.randint(1, 254))
+        
+        target_ip = self.fake.ipv4_private()
+        logs = []
+        
+        # Scan de ports communs
+        common_target_ports = [21, 22, 23, 25, 53, 80, 110, 135, 139, 443, 445, 993, 995, 1433, 3389, 5432]
+        
+        for port in random.sample(common_target_ports, random.randint(10, 20)):
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            action = "DENY"
+            source_port = random.randint(32768, 65535)
+            protocol = "TCP"
+            
+            log_line = f"{timestamp} {action} {scanner_ip}:{source_port} -> {target_ip}:{port} {protocol}"
+            logs.append(log_line)
+        
+        return logs
+    
+    def generate_logs(self, filename="logs/firewall.log"):
+        """Génération du fichier de logs firewall"""
+        logs = []
+        
+        # Trafic normal (majoritaire)
+        for _ in range(800):
+            logs.append(self.generate_normal_traffic())
+        
+        # Trafic bloqué/suspect
+        for _ in range(150):
+            logs.append(self.generate_blocked_traffic())
+        
+        # Séquences de scan de ports
+        for _ in range(3):
+            scan_logs = self.generate_port_scan_sequence()
+            logs.extend(scan_logs)
+        
+        # Mélange des logs
+        random.shuffle(logs)
+        
+        with open(filename, 'w') as f:
+            for log in logs:
+                f.write(log + '\n')
+        
+        print(f"[+] {len(logs)} logs firewall générés dans {filename}")
+        return logs
+
+# Utilisation
+if __name__ == "__main__":
+    import os
+    os.makedirs("logs", exist_ok=True)
+    
+    generator = FirewallLogGenerator()
+    generator.generate_logs()
+```
+
+---
+
+## 🔍 PHASE 3: ANALYSE ET DÉTECTION D'INCIDENTS
+
+![Phase](https://img.shields.io/badge/Phase-3-blue)
+![Analysis](https://img.shields.io/badge/Type-Incident%20Analysis-red)
+![Automation](https://img.shields.io/badge/Level-Automated-green)
+
+### 3.1 Analyseur d'incidents automatisé
+
+![Python](https://img.shields.io/badge/Language-Python-green)
+![Elasticsearch](https://img.shields.io/badge/Backend-Elasticsearch-yellow)
+![Real Time](https://img.shields.io/badge/Processing-Real%20Time-orange)
+
+```python
+#!/usr/bin/env python3
+# scripts/incident_analyzer.py
+
+import json
+import requests
+from datetime import datetime, timedelta
+from collections import Counter, defaultdict
+import statistics
+
+class IncidentAnalyzer:
+    def __init__(self, elasticsearch_url="http://localhost:9200"):
+        self.es_url = elasticsearch_url
+        self.incidents = []
+        
+        # Seuils de détection
+        self.thresholds = {
+            'failed_login_rate': 10,  # tentatives/minute
+            'error_rate': 0.1,        # 10% d'erreurs
+            'unique_ips_threshold': 50,
+            'response_time_threshold': 5000  # ms
+        }
+    
+    def query_elasticsearch(self, query, index="security-logs-*"):
+        """Exécution de requêtes Elasticsearch"""
+        url = f"{self.es_url}/{index}/_search"
+        headers = {'Content-Type': 'application/json'}
+        
+        try:
+            response = requests.post(url, headers=headers, json=query)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            print(f"[-] Erreur Elasticsearch: {e}")
+            return None
+    
+    def detect_brute_force_attacks(self):
+        """Détection des attaques par brute force"""
+        print("[+] Analyse des attaques par brute force...")
+        
+        # Requête pour les tentatives de connexion échouées
+        query = {
+            "size": 0,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"range": {"@timestamp": {"gte": "now-1h"}}},
+                        {"terms": {"tags": ["failed_login", "brute_force_attempt"]}}
+                    ]
+                }
+            },
+            "aggs": {
+                "by_source_ip": {
+                    "terms": {
+                        "field": "source_ip",
+                        "size": 100
+                    },
+                    "aggs": {
+                        "failed_attempts": {
+                            "date_histogram": {
+                                "field": "@timestamp",
+                                "calendar_interval": "1m"
+                            }
+                        },
+                        "targeted_users": {
+                            "terms": {
+                                "field": "failed_user.keyword",
+                                "size": 10
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        result = self.query_elasticsearch(query)
+        if not result:
+            return []
+        
+        incidents = []
+        for bucket in result['aggregations']['by_source_ip']['buckets']:
+            source_ip = bucket['key']
+            total_attempts = bucket['doc_count']
+            
+            # Vérifier si le seuil est dépassé
+            if total_attempts > self.thresholds['failed_login_rate']:
+                # Calculer la fréquence d'attaque
+                time_buckets = bucket['failed_attempts']['buckets']
+                max_attempts_per_minute = max([b['doc_count'] for b in time_buckets] or [0])
+                
+                # Utilisateurs ciblés
+                targeted_users = [user['key'] for user in bucket['targeted_users']['buckets']]
+                
+                incident = {
+                    'type': 'brute_force_attack',
+                    'severity': 'high' if max_attempts_per_minute > 20 else 'medium',
+                    'source_ip': source_ip,
+                    'total_attempts': total_attempts,
+                    'max_attempts_per_minute': max_attempts_per_minute,
+                    'targeted_users': targeted_users,
+                    'timestamp': datetime.now().isoformat(),
+                    'description': f"Attaque par brute force détectée depuis {source_ip} avec {total_attempts} tentatives"
+                }
+                incidents.append(incident)
+        
+        return incidents
+    
+    def detect_web_attacks(self):
+        """Détection des attaques web (SQL injection, XSS, etc.)"""
+        print("[+] Analyse des attaques web...")
+        
+        query = {
+            "size": 100,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"range": {"@timestamp": {"gte": "now-1h"}}},
+                        {"terms": {"tags": ["suspicious", "potential_attack"]}}
+                    ]
+                }
+            },
+            "aggs": {
+                "by_source_ip": {
+                    "terms": {
+                        "field": "source_ip",
+                        "size": 50
+                    }
+                },
+                "attack_types": {
+                    "terms": {
+                        "field": "request.keyword",
+                        "size": 20
+                    }
+                }
+            }
+        }
+        
+        result = self.query_elasticsearch(query)
+        if not result:
+            return []
+        
+        incidents = []
+        
+        # Analyser par IP source
+        for bucket in result['aggregations']['by_source_ip']['buckets']:
+            source_ip = bucket['key']
+            attack_count = bucket['doc_count']
+            
+            if attack_count > 5:  # Plus de 5 attaques par IP
+                incident = {
+                    'type': 'web_attack',
+                    'severity': 'high' if attack_count > 20 else 'medium',
+                    'source_ip': source_ip,
+                    'attack_count': attack_count,
+                    'timestamp': datetime.now().isoformat(),
+                    'description': f"Attaque web détectée depuis {source_ip} avec {attack_count} tentatives suspectes"
+                }
+                incidents.append(incident)
+        
+        # Analyser les types d'attaques spécifiques
+        for hit in result['hits']['hits']:
+            source = hit['_source']
+            if any(payload in source.get('request', '') for payload in ['union', 'select', 'script', 'alert']):
+                incident = {
+                    'type': 'specific_web_attack',
+                    'severity': 'high',
+                    'source_ip': source.get('source_ip'),
+                    'request': source.get('request'),
+                    'attack_pattern': self._identify_attack_pattern(source.get('request', '')),
+                    'timestamp': source.get('@timestamp'),
+                    'description': f"Attaque spécifique détectée: {self._identify_attack_pattern(source.get('request', ''))}"
+                }
+                incidents.append(incident)
+        
+        return incidents
+    
+    def detect_port_scans(self):
+        """Détection des scans de ports"""
+        print("[+] Analyse des scans de ports...")
+        
+        query = {
+            "size": 0,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"range": {"@timestamp": {"gte": "now-1h"}}},
+                        {"terms": {"tags": ["port_scan", "reconnaissance"]}}
+                    ]
+                }
+            },
+            "aggs": {
+                "by_source_ip": {
+                    "terms": {
+                        "field": "source_ip",
+                        "size": 100
+                    },
+                    "aggs": {
+                        "scanned_ports": {
+                            "terms": {
+                                "field": "dest_port",
+                                "size": 100
+                            }
+                        },
+                        "scan_timeline": {
+                            "date_histogram": {
+                                "field": "@timestamp",
+                                "calendar_interval": "1m"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        result = self.query_elasticsearch(query)
+        if not result:
+            return []
+        
+        incidents = []
+        for bucket in result['aggregations']['by_source_ip']['buckets']:
+            source_ip = bucket['key']
+            total_scans = bucket['doc_count']
+            scanned_ports = len(bucket['scanned_ports']['buckets'])
+            
+            # Seuil: plus de 10 ports scannés
+            if scanned_ports > 10:
+                # Analyser la rapidité du scan
+                timeline = bucket['scan_timeline']['buckets']
+                scan_duration = len([b for b in timeline if b['doc_count'] > 0])  # minutes actives
+                
+                ports_list = [str(port['key']) for port in bucket['scanned_ports']['buckets']]
+                
+                incident = {
+                    'type': 'port_scan',
+                    'severity': 'high' if scanned_ports > 50 else 'medium',
+                    'source_ip': source_ip,
+                    'scanned_ports_count': scanned_ports,
+                    'total_attempts': total_scans,
+                    'scan_duration_minutes': scan_duration,
+                    'scanned_ports': ports_list[:20],  # Limiter la liste
+                    'timestamp': datetime.now().isoformat(),
+                    'description': f"Scan de ports détecté depuis {source_ip}: {scanned_ports} ports scannés"
+                }
+                incidents.append(incident)
+        
+        return incidents
+    
+    def detect_anomalies(self):
+        """Détection d'anomalies générales"""
+        print("[+] Analyse des anomalies...")
+        
+        # Détecter les pics de trafic
+        traffic_query = {
+            "size": 0,
+            "query": {
+                "range": {"@timestamp": {"gte": "now-1h"}}
+            },
+            "aggs": {
+                "traffic_over_time": {
+                    "date_histogram": {
+                        "field": "@timestamp",
+                        "calendar_interval": "5m"
+                    }
+                },
+                "top_source_ips": {
+                    "terms": {
+                        "field": "source_ip",
+                        "size": 20
+                    }
+                }
+            }
+        }
+        
+        result = self.query_elasticsearch(traffic_query)
+        if not result:
+            return []
+        
+        incidents = []
+        
+        # Analyser les pics de trafic
+        traffic_buckets = result['aggregations']['traffic_over_time']['buckets']
+        traffic_volumes = [bucket['doc_count'] for bucket in traffic_buckets]
+        
+        if traffic_volumes:
+            avg_traffic = statistics.mean(traffic_volumes)
+            max_traffic = max(traffic_volumes)
+            
+            # Détecter un pic anormal (3x la moyenne)
+            if max_traffic > avg_traffic * 3 and max_traffic > 100:
+                incident = {
+                    'type': 'traffic_spike',
+                    'severity': 'medium',
+                    'max_requests': max_traffic,
+                    'average_requests': round(avg_traffic, 2),
+                    'spike_ratio': round(max_traffic / avg_traffic, 2),
+                    'timestamp': datetime.now().isoformat(),
+                    'description': f"Pic de trafic anormal détecté: {max_traffic} requêtes (moyenne: {avg_traffic:.2f})"
+                }
+                incidents.append(incident)
+        
+        # Analyser les IPs les plus actives
+        for bucket in result['aggregations']['top_source_ips']['buckets']:
+            ip = bucket['key']
+            request_count = bucket['doc_count']
+            
+            # Seuil: plus de 1000 requêtes par heure
+            if request_count > 1000:
+                incident = {
+                    'type': 'high_volume_source',
+                    'severity': 'medium',
+                    'source_ip': ip,
+                    'request_count': request_count,
+                    'timestamp': datetime.now().isoformat(),
+                    'description': f"Volume anormalement élevé depuis {ip}: {request_count} requêtes/heure"
+                }
+                incidents.append(incident)
+        
+        return incidents
+    
+    def _identify_attack_pattern(self, request):
+        """Identification du type d'attaque à partir de la requête"""
+        request_lower = request.lower()
+        
+        if any(pattern in request_lower for pattern in ['union', 'select', 'or 1=1', 'drop table']):
+            return 'SQL Injection'
+        elif any(pattern in request_lower for pattern in ['script', 'alert', 'javascript:', 'onerror']):
+            return 'Cross-Site Scripting (XSS)'
+        elif any(pattern in request_lower for pattern in ['../..', 'etc/passwd', 'windows/system32']):
+            return 'Path Traversal'
+        elif any(pattern in request_lower for pattern in ['cmd', 'exec', 'system']):
+            return 'Command Injection'
+        else:
+            return 'Unknown Attack Pattern'
+    
+    def classify_incident_severity(self, incident):
+        """Classification de la sévérité des incidents"""
+        severity_score = 0
+        
+        # Facteurs de sévérité
+        if incident['type'] in ['brute_force_attack', 'web_attack']:
+            severity_score += 3
+        elif incident['type'] in ['port_scan']:
+            severity_score += 2
+        else:
+            severity_score += 1
+        
+        # Volume/fréquence
+        if incident.get('total_attempts', 0) > 100:
+            severity_score += 2
+        elif incident.get('total_attempts', 0) > 50:
+            severity_score += 1
+        
+        # Classification finale
+        if severity_score >= 5:
+            return 'critical'
+        elif severity_score >= 3:
+            return 'high'
+        elif severity_score >= 2:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def generate_incident_report(self, incidents):
+        """Génération d'un rapport d'incidents"""
+        if not incidents:
+            return "Aucun incident détecté."
+        
+        # Tri par sévérité et timestamp
+        incidents_sorted = sorted(incidents, 
+                                key=lambda x: (x.get('severity', 'low'), x.get('timestamp', '')), 
+                                reverse=True)
+        
+        report = f"""
+![Incident Report](https://img.shields.io/badge/Report-Security%20Incidents-red)
+![Count](https://img.shields.io/badge/Total%20Incidents-{len(incidents)}-orange)
+![Status](https://img.shields.io/badge/Status-Active%20Monitoring-green)
+
+# 🚨 RAPPORT D'INCIDENTS DE SÉCURITÉ
+**Période d'analyse**: Dernière heure  
+**Nombre total d'incidents**: {len(incidents)}  
+**Généré le**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## 📊 Résumé des incidents
+
+"""
+        
+        # Comptage par type et sévérité
+        incident_types = Counter([inc['type'] for inc in incidents])
+        severity_counts = Counter([inc.get('severity', 'unknown') for inc in incidents])
+        
+        for inc_type, count in incident_types.most_common():
+            report += f"- ![{inc_type}](https://img.shields.io/badge/{inc_type.replace('_', '%20')}-{count}-red) {inc_type.replace('_', ' ').title()}: {count} incidents\n"
+        
+        report += f"\n### 🎯 Répartition par sévérité\n"
+        for severity, count in severity_counts.most_common():
+            color = {'critical': 'red', 'high': 'orange', 'medium': 'yellow', 'low': 'green'}.get(severity, 'lightgrey')
+            report += f"- ![{severity}](https://img.shields.io/badge/Severity-{severity.upper()}-{color}) {severity.upper()}: {count} incidents\n"
+        
+        report += f"\n## 📋 Détail des incidents\n\n"
+        
+        for i, incident in enumerate(incidents_sorted[:10], 1):  # Top 10
+            severity_color = {'critical': 'red', 'high': 'orange', 'medium': 'yellow', 'low': 'green'}.get(incident.get('severity', 'low'), 'lightgrey')
+            
+            report += f"""
+### {i}. {incident['type'].replace('_', ' ').title()}
+![Severity](https://img.shields.io/badge/Severity-{incident.get('severity', 'unknown').upper()}-{severity_color})
+![Type](https://img.shields.io/badge/Type-{incident['type'].replace('_', '%20')}-blue)
+
+**Description**: {incident['description']}  
+**Timestamp**: `{incident.get('timestamp', 'N/A')}`  
+**IP Source**: `{incident.get('source_ip', 'N/A')}`  
+"""
+            
+            # Détails spécifiques selon le type
+            if incident['type'] == 'brute_force_attack':
+                report += f"**Tentatives totales**: {incident.get('total_attempts', 'N/A')}  \n"
+                report += f"**Utilisateurs ciblés**: {', '.join(incident.get('targeted_users', []))}  \n"
+            elif incident['type'] == 'port_scan':
+                report += f"**Ports scannés**: {incident.get('scanned_ports_count', 'N/A')}  \n"
+                report += f"**Durée du scan**: {incident.get('scan_duration_minutes', 'N/A')} minutes  \n"
+            elif incident['type'] in ['web_attack', 'specific_web_attack']:
+                report += f"**Pattern d'attaque**: {incident.get('attack_pattern', 'N/A')}  \n"
+                if 'request' in incident:
+                    report += f"**Requête suspecte**: `{incident['request'][:100]}...`  \n"
+        
+        return report
+    
+    def run_analysis(self):
+        """Exécution de l'analyse complète"""
+        print(f"[+] Démarrage de l'analyse des incidents - {datetime.now()}")
+        
+        all_incidents = []
+        
+        # Exécuter toutes les détections
+        all_incidents.extend(self.detect_brute_force_attacks())
+        all_incidents.extend(self.detect_web_attacks())
+        all_incidents.extend(self.detect_port_scans())
+        all_incidents.extend(self.detect_anomalies())
+        
+        # Classification de la sévérité
+        for incident in all_incidents:
+            if 'severity' not in incident:
+                incident['severity'] = self.classify_incident_severity(incident)
+        
+        # Génération du rapport
+        report = self.generate_incident_report(all_incidents)
+        
+        # Sauvegarde du rapport
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        report_filename = f"reports/incident_report_{timestamp}.md"
+        
+        import os
+        os.makedirs("reports", exist_ok=True)
+        with open(report_filename, 'w', encoding='utf-8') as f:
+            f.write(report)
+        
+        print(f"[+] Analyse terminée. {len(all_incidents)} incidents détectés.")
+        print(f"[+] Rapport sauvegardé: {report_filename}")
+        
+        return all_incidents, report
+
+# Utilisation
+if __name__ == "__main__":
+    analyzer = IncidentAnalyzer()
+    incidents, report = analyzer.run_analysis()
+    print("\n" + "="*80)
+    print(report)
+```
+
+### 3.2 Script de surveillance continue
+
+![Monitoring](https://img.shields.io/badge/Type-Continuous%20Monitoring-green)
+![Real Time](https://img.shields.io/badge/Mode-Real%20Time-orange)
+
+```python
+#!/usr/bin/env python3
+# scripts/continuous_monitoring.py
+
+import time
+import schedule
+import json
+from datetime import datetime
+from incident_analyzer import IncidentAnalyzer
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+class SecurityMonitor:
+    def __init__(self, config_file="config/monitoring_config.json"):
+        self.load_configuration(config_file)
+        self.analyzer = IncidentAnalyzer(self.config.get('elasticsearch_url'))
+        self.alert_history = []
+    
+    def load_configuration(self, config_file):
+        """Chargement de la configuration"""
+        try:
+            with open(config_file, 'r') as f:
+                self.config = json.load(f)
+        except FileNotFoundError:
+            print(f"[-] Fichier de configuration non trouvé: {config_file}")
+            self.config = self._default_config()
+    
+    def _default_config(self):
+        """Configuration par défaut"""
+        return {
+            "elasticsearch_url": "http://localhost:9200",
+            "monitoring_interval": 300,  # 5 minutes
+            "alert_thresholds": {
+                "critical_incidents": 1,
+                "high_incidents": 3,
+                "medium_incidents": 10
+            },
+            "notifications": {
+                "email": {
+                    "enabled": False,
+                    "smtp_server": "smtp.gmail.com",
+                    "smtp_port": 587,
+                    "username": "",
+                    "password": "",
+                    "recipients": []
+                },
+                "webhook": {
+                    "enabled": False,
+                    "url": ""
+                }
+            }
+        }
+    
+    def check_for_incidents(self):
+        """Vérification périodique des incidents"""
+        print(f"\n[+] Vérification des incidents - {datetime.now().strftime('%H:%M:%S')}")
+        
+        try:
+            incidents, report = self.analyzer.run_analysis()
+            
+            if incidents:
+                self._process_incidents(incidents)
+                return incidents
+            else:
+                print("[+] Aucun incident détecté")
+                return []
+        except Exception as e:
+            print(f"[-] Erreur lors de l'analyse: {e}")
+            return []
+    
+    def _process_incidents(self, incidents):
+        """Traitement des incidents détectés"""
+        # Comptage par sévérité
+        severity_counts = {
+            'critical': len([i for i in incidents if i.get('severity') == 'critical']),
+            'high': len([i for i in incidents if i.get('severity') == 'high']),
+            'medium': len([i for i in incidents if i.get('severity') == 'medium']),
+            'low': len([i for i in incidents if i.get('severity') == 'low'])
+        }
+        
+        print(f"[!] {len(incidents)} incidents détectés:")
+        for severity, count in severity_counts.items():
+            if count > 0:
+                print(f"    - {severity.upper()}: {count}")
+        
+        # Vérifier les seuils d'alerte
+        alerts_triggered = []
+        thresholds = self.config['alert_thresholds']
+        
+        if severity_counts['critical'] >= thresholds['critical_incidents']:
+            alerts_triggered.append(f"CRITIQUE: {severity_counts['critical']} incidents critiques détectés")
+        
+        if severity_counts['high'] >= thresholds['high_incidents']:
+            alerts_triggered.append(f"IMPORTANT: {severity_counts['high']} incidents de haute sévérité détectés")
+        
+        if severity_counts['medium'] >= thresholds['medium_incidents']:
+            alerts_triggered.append(f"ATTENTION: {severity_counts['medium']} incidents de sévérité moyenne détectés")
+        
+        # Envoyer les alertes si nécessaire
+        if alerts_triggered:
+            self._send_alerts(alerts_triggered, incidents)
+    
+    def _send_alerts(self, alerts, incidents):
+        """Envoi des alertes"""
+        alert_message = self._format_alert_message(alerts, incidents)
+        
+        # Email
+        if self.config['notifications']['email']['enabled']:
+            self._send_email_alert(alert_message)
+        
+        # Webhook
+        if self.config['notifications']['webhook']['enabled']:
+            self._send_webhook_alert(alert_message)
+        
+        # Console
+        print("\n🚨 ALERTE SÉCURITÉ 🚨")
+        print("=" * 50)
+        print(alert_message)
+        print("=" * 50)
+    
+    def _format_alert_message(self, alerts, incidents):
+        """Formatage du message d'alerte"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        message = f"""
+ALERTE SÉCURITÉ - {timestamp}
+
+ALERTES DÉCLENCHÉES:
+{chr(10).join(['- ' + alert for alert in alerts])}
+
+INCIDENTS LES PLUS CRITIQUES:
+"""
+        
+        # Afficher les 5 incidents les plus critiques
+        critical_incidents = sorted(
+            [i for i in incidents if i.get('severity') in ['critical', 'high']], 
+            key=lambda x: x.get('severity', 'low'), 
+            reverse=True
+        )[:5]
+        
+        for incident in critical_incidents:
+            message += f"\n- {incident['type'].upper()}: {incident['description']}"
+            if 'source_ip' in incident:
+                message += f" (IP: {incident['source_ip']})"
+        
+        return message
+    
+    def _send_email_alert(self, message):
+        """Envoi d'alerte par email"""
+        try:
+            email_config = self.config['notifications']['email']
+            
+            msg = MIMEMultipart()
+            msg['From'] = email_config['username']
+            msg['To'] = ', '.join(email_config['recipients'])
+            msg['Subject'] = f"🚨 Alerte Sécurité SIEM - {datetime.now().strftime('%H:%M:%S')}"
+            
+            msg.attach(MIMEText(message, 'plain'))
+            
+            server = smtplib.SMTP(email_config['smtp_server'], email_config['smtp_port'])
+            server.starttls()
+            server.login(email_config['username'], email_config['password'])
+            
+            text = msg.as_string()
+            server.sendmail(email_config['username'], email_config['recipients'], text)
+            server.quit()
+            
+            print("[+] Alerte email envoyée")
+        except Exception as e:
+            print(f"[-] Erreur envoi email: {e}")
+    
+    def _send_webhook_alert(self, message):
+        """Envoi d'alerte via webhook"""
+        try:
+            import requests
+            
+            webhook_url = self.config['notifications']['webhook']['url']
+            payload = {
+                'text': message,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            response = requests.post(webhook_url, json=payload)
+            response.raise_for_status()
+            
+            print("[+] Alerte webhook envoyée")
+        except Exception as e:
+            print(f"[-] Erreur envoi webhook: {e}")
+    
+    def start_monitoring(self):
+        """Démarrage de la surveillance continue"""
+        print(f"""
+![Monitoring](https://img.shields.io/badge/Status-MONITORING%20STARTED-green)
+![Interval](https://img.shields.io/badge/Interval-{self.config['monitoring_interval']}s-blue)
+
+🛡️ DÉMARRAGE DE LA SURVEILLANCE SÉCURITÉ
+        
+Configuration:
+- URL Elasticsearch: {self.config['elasticsearch_url']}
+- Intervalle de vérification: {self.config['monitoring_interval']} secondes
+- Seuils d'alerte: {self.config['alert_thresholds']}
+- Notifications email: {'✅' if self.config['notifications']['email']['enabled'] else '❌'}
+- Notifications webhook: {'✅' if self.config['notifications']['webhook']['enabled'] else '❌'}
+
+Surveillance active... Appuyez sur Ctrl+C pour arrêter.
+        """)
+        
+        # Configuration du planning
+        interval_minutes = self.config['monitoring_interval'] // 60
+        if interval_minutes > 0:
+            schedule.every(interval_minutes).minutes.do(self.check_for_incidents)
+        else:
+            schedule.every(self.config['monitoring_interval']).seconds.do(self.check_for_incidents)
+        
+        # Première vérification immédiate
+        self.check_for_incidents()
+        
+        # Bouc
