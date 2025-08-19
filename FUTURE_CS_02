@@ -1504,4 +1504,1344 @@ Surveillance active... Appuyez sur Ctrl+C pour arrêter.
         # Première vérification immédiate
         self.check_for_incidents()
         
-        # Bouc
+        # Boucle principale de surveillance
+        try:
+            while True:
+                schedule.run_pending()
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n[+] Surveillance arrêtée par l'utilisateur")
+
+# Utilisation
+if __name__ == "__main__":
+    monitor = SecurityMonitor()
+    monitor.start_monitoring()
+```
+
+---
+
+## 📁 STRUCTURE DU PROJET
+
+![Project Structure](https://img.shields.io/badge/Project-Structure-blue)
+![Organization](https://img.shields.io/badge/Type-Organized-green)
+
+```
+TASK-02-SIEM-Operations/
+│
+├── 📄 README.md
+│   ![Documentation](https://img.shields.io/badge/Type-Documentation-blue)
+│
+├── 🐳 docker/
+│   │   ![Docker](https://img.shields.io/badge/Container-Docker-blue)
+│   └── docker-compose.yml
+│       ![Compose](https://img.shields.io/badge/Type-Compose%20File-orange)
+│
+├── ⚙️ config/
+│   │   ![Configuration](https://img.shields.io/badge/Type-Configuration-yellow)
+│   ├── logstash.conf
+│   │   ![Logstash](https://img.shields.io/badge/Service-Logstash-green)
+│   ├── elasticsearch.yml
+│   │   ![Elasticsearch](https://img.shields.io/badge/Service-Elasticsearch-yellow)
+│   ├── kibana.yml
+│   │   ![Kibana](https://img.shields.io/badge/Service-Kibana-purple)
+│   ├── filebeat.yml
+│   │   ![Filebeat](https://img.shields.io/badge/Service-Filebeat-red)
+│   └── monitoring_config.json
+│       ![Monitoring](https://img.shields.io/badge/Type-Monitoring%20Config-orange)
+│
+├── 🐍 scripts/
+│   │   ![Python Scripts](https://img.shields.io/badge/Language-Python-green)
+│   ├── generate_apache_logs.py
+│   │   ![Apache Logs](https://img.shields.io/badge/Generator-Apache%20Logs-red)
+│   ├── generate_auth_logs.py
+│   │   ![Auth Logs](https://img.shields.io/badge/Generator-Auth%20Logs-blue)
+│   ├── generate_firewall_logs.py
+│   │   ![Firewall Logs](https://img.shields.io/badge/Generator-Firewall%20Logs-orange)
+│   ├── incident_analyzer.py
+│   │   ![Analysis](https://img.shields.io/badge/Tool-Incident%20Analyzer-red)
+│   ├── incident_classifier.py
+│   │   ![Classification](https://img.shields.io/badge/Tool-Incident%20Classifier-yellow)
+│   ├── alert_correlation.py
+│   │   ![Correlation](https://img.shields.io/badge/Tool-Alert%20Correlation-purple)
+│   ├── continuous_monitoring.py
+│   │   ![Monitoring](https://img.shields.io/badge/Tool-Continuous%20Monitor-green)
+│   └── response_playbook.py
+│       ![Playbook](https://img.shields.io/badge/Tool-Response%20Playbook-blue)
+│
+├── 📊 reports/
+│   │   ![Reports](https://img.shields.io/badge/Type-Security%20Reports-red)
+│   ├── incident_classification_report.json
+│   │   ![Classification](https://img.shields.io/badge/Report-Classification-yellow)
+│   ├── alert_correlation_report.json
+│   │   ![Correlation](https://img.shields.io/badge/Report-Correlation-purple)
+│   ├── incident_response_report.md
+│   │   ![Response](https://img.shields.io/badge/Report-Response-blue)
+│   └── daily_security_summary.md
+│       ![Summary](https://img.shields.io/badge/Report-Daily%20Summary-green)
+│
+├── 📈 dashboards/
+│   │   ![Dashboards](https://img.shields.io/badge/Type-Visualizations-purple)
+│   ├── soc_dashboard.png
+│   │   ![SOC](https://img.shields.io/badge/Dashboard-SOC%20Operations-blue)
+│   ├── threat_intelligence.png
+│   │   ![Threat Intel](https://img.shields.io/badge/Dashboard-Threat%20Intelligence-red)
+│   ├── incident_timeline.png
+│   │   ![Timeline](https://img.shields.io/badge/Dashboard-Incident%20Timeline-orange)
+│   └── network_security_overview.png
+│       ![Network](https://img.shields.io/badge/Dashboard-Network%20Security-green)
+│
+├── 📝 logs/
+│   │   ![Log Files](https://img.shields.io/badge/Type-Log%20Storage-grey)
+│   ├── apache_access.log
+│   ├── auth.log
+│   ├── firewall.log
+│   └── application.log
+│
+├── 🎭 templates/
+│   │   ![Templates](https://img.shields.io/badge/Type-Templates-lightblue)
+│   ├── incident_response_template.md
+│   ├── security_alert_template.json
+│   └── playbook_template.py
+│
+└── 📚 documentation/
+    │   ![Documentation](https://img.shields.io/badge/Type-Documentation-blue)
+    ├── setup_guide.md
+    ├── playbook_procedures.md
+    ├── troubleshooting.md
+    └── best_practices.md
+```
+
+---
+
+## 🔧 PHASE 4: OUTILS COMPLÉMENTAIRES
+
+![Phase](https://img.shields.io/badge/Phase-4-blue)
+![Tools](https://img.shields.io/badge/Type-Additional%20Tools-green)
+
+### 4.1 Classificateur d'incidents avancé
+
+![Classification](https://img.shields.io/badge/Tool-Incident%20Classifier-yellow)
+![Machine Learning](https://img.shields.io/badge/Technology-ML%20Enhanced-purple)
+
+```python
+#!/usr/bin/env python3
+# scripts/incident_classifier.py
+
+import json
+import numpy as np
+from datetime import datetime, timedelta
+from collections import defaultdict
+import requests
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import KMeans
+import joblib
+
+class AdvancedIncidentClassifier:
+    def __init__(self, elasticsearch_url="http://localhost:9200"):
+        self.es_url = elasticsearch_url
+        self.classification_rules = self._load_classification_rules()
+        self.ml_model = None
+        self.vectorizer = None
+        
+    def _load_classification_rules(self):
+        """Chargement des règles de classification"""
+        return {
+            # Attaques par force brute
+            'brute_force': {
+                'indicators': [
+                    'failed_login', 'brute_force_attempt', 'authentication_failure'
+                ],
+                'thresholds': {
+                    'attempts_per_minute': 10,
+                    'unique_users_targeted': 3,
+                    'source_ip_reputation': 0.3
+                },
+                'severity_matrix': {
+                    'low': {'attempts': (1, 10), 'duration': (1, 300)},
+                    'medium': {'attempts': (11, 50), 'duration': (301, 1800)},
+                    'high': {'attempts': (51, 200), 'duration': (1801, 3600)},
+                    'critical': {'attempts': (201, float('inf')), 'duration': (3601, float('inf'))}
+                }
+            },
+            
+            # Attaques web
+            'web_attack': {
+                'indicators': [
+                    'sql_injection', 'xss', 'path_traversal', 'command_injection'
+                ],
+                'patterns': {
+                    'sql_injection': [r'union\s+select', r'or\s+1\s*=\s*1', r'drop\s+table'],
+                    'xss': [r'<script', r'javascript:', r'onerror\s*='],
+                    'path_traversal': [r'\.\./', r'etc/passwd', r'windows/system32'],
+                    'command_injection': [r';.*cmd', r'\|.*ls', r'`.*whoami']
+                },
+                'severity_matrix': {
+                    'low': {'successful_attempts': 0, 'payload_complexity': 1},
+                    'medium': {'successful_attempts': (1, 5), 'payload_complexity': 2},
+                    'high': {'successful_attempts': (6, 20), 'payload_complexity': 3},
+                    'critical': {'successful_attempts': (21, float('inf')), 'payload_complexity': 4}
+                }
+            },
+            
+            # Reconnaissance et scanning
+            'reconnaissance': {
+                'indicators': [
+                    'port_scan', 'service_enumeration', 'vulnerability_scan'
+                ],
+                'thresholds': {
+                    'ports_scanned': 20,
+                    'scan_speed': 10,  # ports per minute
+                    'scan_comprehensiveness': 0.5
+                },
+                'severity_matrix': {
+                    'low': {'ports': (1, 10), 'duration': (60, 300)},
+                    'medium': {'ports': (11, 50), 'duration': (301, 900)},
+                    'high': {'ports': (51, 200), 'duration': (901, 1800)},
+                    'critical': {'ports': (201, float('inf')), 'duration': (1801, float('inf'))}
+                }
+            },
+            
+            # Malware et intrusions
+            'malware': {
+                'indicators': [
+                    'malicious_payload', 'suspicious_file_upload', 'backdoor_communication'
+                ],
+                'file_signatures': [
+                    'executable_upload', 'suspicious_extension', 'encoded_payload'
+                ],
+                'severity_matrix': {
+                    'medium': {'confirmed_malware': False, 'suspicious_behavior': True},
+                    'high': {'confirmed_malware': True, 'data_exfiltration': False},
+                    'critical': {'confirmed_malware': True, 'data_exfiltration': True}
+                }
+            }
+        }
+    
+    def classify_incident(self, incident_data):
+        """Classification d'un incident"""
+        print(f"[+] Classification de l'incident: {incident_data.get('type', 'Unknown')}")
+        
+        # Extraction des caractéristiques
+        features = self._extract_features(incident_data)
+        
+        # Classification principale
+        primary_classification = self._classify_primary_type(incident_data, features)
+        
+        # Évaluation de la sévérité
+        severity = self._evaluate_severity(incident_data, features, primary_classification)
+        
+        # Calcul du score de risque
+        risk_score = self._calculate_risk_score(incident_data, features, severity)
+        
+        # Attribution des priorités
+        priority = self._assign_priority(severity, risk_score, features)
+        
+        classification_result = {
+            'incident_id': incident_data.get('id', self._generate_incident_id()),
+            'timestamp': datetime.now().isoformat(),
+            'primary_classification': primary_classification,
+            'sub_classifications': self._identify_sub_classifications(incident_data, features),
+            'severity': severity,
+            'risk_score': risk_score,
+            'priority': priority,
+            'confidence': self._calculate_confidence(incident_data, features),
+            'features': features,
+            'recommended_actions': self._suggest_actions(primary_classification, severity),
+            'escalation_required': self._requires_escalation(severity, risk_score),
+            'estimated_impact': self._estimate_impact(incident_data, features, severity)
+        }
+        
+        return classification_result
+    
+    def _extract_features(self, incident_data):
+        """Extraction des caractéristiques de l'incident"""
+        features = {
+            'temporal': self._extract_temporal_features(incident_data),
+            'network': self._extract_network_features(incident_data),
+            'behavioral': self._extract_behavioral_features(incident_data),
+            'contextual': self._extract_contextual_features(incident_data)
+        }
+        return features
+    
+    def _extract_temporal_features(self, incident_data):
+        """Extraction des caractéristiques temporelles"""
+        return {
+            'duration': incident_data.get('duration', 0),
+            'frequency': incident_data.get('frequency', 1),
+            'time_of_day': datetime.now().hour,
+            'day_of_week': datetime.now().weekday(),
+            'is_business_hours': 9 <= datetime.now().hour <= 17,
+            'temporal_pattern': self._analyze_temporal_pattern(incident_data)
+        }
+    
+    def _extract_network_features(self, incident_data):
+        """Extraction des caractéristiques réseau"""
+        source_ip = incident_data.get('source_ip', '')
+        return {
+            'source_ip_reputation': self._check_ip_reputation(source_ip),
+            'geographic_location': incident_data.get('geoip', {}),
+            'is_internal_ip': self._is_internal_ip(source_ip),
+            'port_diversity': len(set(incident_data.get('ports_involved', []))),
+            'protocol_types': list(set(incident_data.get('protocols', []))),
+            'bandwidth_usage': incident_data.get('bandwidth', 0)
+        }
+    
+    def _extract_behavioral_features(self, incident_data):
+        """Extraction des caractéristiques comportementales"""
+        return {
+            'attack_sophistication': self._assess_sophistication(incident_data),
+            'evasion_techniques': self._detect_evasion_techniques(incident_data),
+            'persistence_indicators': self._check_persistence(incident_data),
+            'lateral_movement': self._detect_lateral_movement(incident_data),
+            'data_exfiltration_signs': self._check_data_exfiltration(incident_data)
+        }
+    
+    def _extract_contextual_features(self, incident_data):
+        """Extraction des caractéristiques contextuelles"""
+        return {
+            'affected_systems': incident_data.get('affected_systems', []),
+            'business_criticality': self._assess_business_criticality(incident_data),
+            'user_privileges': incident_data.get('user_privileges', 'unknown'),
+            'data_sensitivity': self._assess_data_sensitivity(incident_data),
+            'regulatory_implications': self._check_regulatory_implications(incident_data)
+        }
+    
+    def _classify_primary_type(self, incident_data, features):
+        """Classification du type principal d'incident"""
+        incident_type = incident_data.get('type', '')
+        tags = incident_data.get('tags', [])
+        
+        # Mapping des types
+        type_mapping = {
+            'brute_force_attack': 'authentication_attack',
+            'web_attack': 'application_attack',
+            'port_scan': 'reconnaissance',
+            'malware_detection': 'malware_incident',
+            'data_exfiltration': 'data_breach',
+            'privilege_escalation': 'privilege_abuse',
+            'lateral_movement': 'advanced_persistent_threat'
+        }
+        
+        primary_type = type_mapping.get(incident_type, 'unknown_incident')
+        
+        # Affinement basé sur les tags et caractéristiques
+        if 'failed_login' in tags and features['behavioral']['attack_sophistication'] > 0.7:
+            primary_type = 'advanced_authentication_attack'
+        elif 'sql_injection' in tags or 'xss' in tags:
+            primary_type = 'web_application_attack'
+        elif features['behavioral']['lateral_movement'] and features['behavioral']['persistence_indicators']:
+            primary_type = 'advanced_persistent_threat'
+        
+        return primary_type
+    
+    def _evaluate_severity(self, incident_data, features, classification):
+        """Évaluation de la sévérité"""
+        base_severity = incident_data.get('severity', 'medium')
+        
+        # Facteurs d'aggravation
+        aggravating_factors = 0
+        
+        # Criticité business
+        if features['contextual']['business_criticality'] == 'critical':
+            aggravating_factors += 2
+        elif features['contextual']['business_criticality'] == 'high':
+            aggravating_factors += 1
+        
+        # Sensibilité des données
+        if features['contextual']['data_sensitivity'] == 'confidential':
+            aggravating_factors += 2
+        elif features['contextual']['data_sensitivity'] == 'sensitive':
+            aggravating_factors += 1
+        
+        # Sophistication de l'attaque
+        if features['behavioral']['attack_sophistication'] > 0.8:
+            aggravating_factors += 2
+        elif features['behavioral']['attack_sophistication'] > 0.6:
+            aggravating_factors += 1
+        
+        # Persistance et mouvement latéral
+        if features['behavioral']['persistence_indicators']:
+            aggravating_factors += 1
+        if features['behavioral']['lateral_movement']:
+            aggravating_factors += 2
+        
+        # Calcul de la sévérité finale
+        severity_score = self._severity_to_score(base_severity) + aggravating_factors
+        
+        if severity_score >= 8:
+            return 'critical'
+        elif severity_score >= 6:
+            return 'high'
+        elif severity_score >= 4:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def _calculate_risk_score(self, incident_data, features, severity):
+        """Calcul du score de risque (0-100)"""
+        # Score de base selon la sévérité
+        severity_scores = {'low': 20, 'medium': 40, 'high': 70, 'critical': 90}
+        base_score = severity_scores.get(severity, 40)
+        
+        # Facteurs de risque additionnels
+        risk_factors = {
+            'ip_reputation': (1 - features['network']['source_ip_reputation']) * 10,
+            'attack_sophistication': features['behavioral']['attack_sophistication'] * 15,
+            'business_impact': self._calculate_business_impact(features) * 20,
+            'data_sensitivity': self._calculate_data_sensitivity_score(features) * 15,
+            'evasion_techniques': len(features['behavioral']['evasion_techniques']) * 5
+        }
+        
+        total_risk = base_score + sum(risk_factors.values())
+        return min(100, max(0, total_risk))  # Normalisation 0-100
+    
+    def _assign_priority(self, severity, risk_score, features):
+        """Attribution de la priorité"""
+        # Matrice priorité basée sur sévérité et score de risque
+        if severity == 'critical' or risk_score >= 85:
+            return 'P1 - Critical'
+        elif severity == 'high' or risk_score >= 70:
+            return 'P2 - High'
+        elif severity == 'medium' or risk_score >= 40:
+            return 'P3 - Medium'
+        else:
+            return 'P4 - Low'
+    
+    def _suggest_actions(self, classification, severity):
+        """Suggestion d'actions à prendre"""
+        action_matrix = {
+            'authentication_attack': {
+                'immediate': ['Block source IP', 'Reset affected user passwords', 'Enable MFA'],
+                'short_term': ['Review authentication logs', 'Update password policies'],
+                'long_term': ['Implement account lockout policies', 'Deploy behavioral analytics']
+            },
+            'web_application_attack': {
+                'immediate': ['Block malicious requests', 'Apply WAF rules', 'Patch vulnerabilities'],
+                'short_term': ['Code review', 'Security testing', 'Update input validation'],
+                'long_term': ['SAST/DAST implementation', 'Security training for developers']
+            },
+            'reconnaissance': {
+                'immediate': ['Block scanning IP', 'Alert network team', 'Increase monitoring'],
+                'short_term': ['Review firewall rules', 'Analyze scan patterns'],
+                'long_term': ['Deploy deception technology', 'Network segmentation']
+            }
+        }
+        
+        return action_matrix.get(classification, {
+            'immediate': ['Isolate affected systems', 'Collect evidence'],
+            'short_term': ['Detailed investigation', 'Impact assessment'],
+            'long_term': ['Security improvements', 'Process review']
+        })
+    
+    def generate_classification_report(self, incidents):
+        """Génération d'un rapport de classification"""
+        if not incidents:
+            return "Aucun incident à classifier."
+        
+        # Classification de tous les incidents
+        classified_incidents = []
+        for incident in incidents:
+            classification = self.classify_incident(incident)
+            classified_incidents.append(classification)
+        
+        # Analyse statistique
+        severity_distribution = defaultdict(int)
+        risk_scores = []
+        classifications = defaultdict(int)
+        
+        for incident in classified_incidents:
+            severity_distribution[incident['severity']] += 1
+            risk_scores.append(incident['risk_score'])
+            classifications[incident['primary_classification']] += 1
+        
+        avg_risk_score = np.mean(risk_scores) if risk_scores else 0
+        
+        # Génération du rapport
+        report = f"""
+![Classification Report](https://img.shields.io/badge/Report-Incident%20Classification-purple)
+![Total](https://img.shields.io/badge/Total%20Incidents-{len(classified_incidents)}-blue)
+![Avg Risk](https://img.shields.io/badge/Avg%20Risk%20Score-{avg_risk_score:.1f}-orange)
+
+# 🎯 RAPPORT DE CLASSIFICATION DES INCIDENTS
+
+**Période d'analyse**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**Nombre d'incidents classifiés**: {len(classified_incidents)}  
+**Score de risque moyen**: {avg_risk_score:.2f}/100
+
+## 📊 Distribution par sévérité
+
+"""
+        
+        for severity in ['critical', 'high', 'medium', 'low']:
+            count = severity_distribution[severity]
+            if count > 0:
+                percentage = (count / len(classified_incidents)) * 100
+                color = {'critical': 'red', 'high': 'orange', 'medium': 'yellow', 'low': 'green'}[severity]
+                report += f"- ![{severity}](https://img.shields.io/badge/{severity.upper()}-{count}%20({percentage:.1f}%%)-{color})\n"
+        
+        report += f"\n## 🎯 Types d'incidents détectés\n\n"
+        
+        for classification, count in classifications.most_common():
+            percentage = (count / len(classified_incidents)) * 100
+            report += f"- **{classification.replace('_', ' ').title()}**: {count} incidents ({percentage:.1f}%)\n"
+        
+        report += f"\n## 🚨 Incidents prioritaires\n\n"
+        
+        # Top 10 des incidents les plus critiques
+        priority_incidents = sorted(classified_incidents, 
+                                  key=lambda x: x['risk_score'], reverse=True)[:10]
+        
+        for i, incident in enumerate(priority_incidents, 1):
+            severity_color = {'critical': 'red', 'high': 'orange', 'medium': 'yellow', 'low': 'green'}.get(incident['severity'], 'grey')
+            report += f"""
+### {i}. {incident['primary_classification'].replace('_', ' ').title()}
+![Priority](https://img.shields.io/badge/Priority-{incident['priority'].replace(' ', '%20')}-red)
+![Risk](https://img.shields.io/badge/Risk%20Score-{incident['risk_score']:.0f}/100-orange)
+![Severity](https://img.shields.io/badge/Severity-{incident['severity'].upper()}-{severity_color})
+
+**Impact estimé**: {incident['estimated_impact']}  
+**Escalade requise**: {'✅ Oui' if incident['escalation_required'] else '❌ Non'}  
+**Confiance**: {incident['confidence']:.1%}
+
+**Actions recommandées**:
+- Immédiat: {', '.join(incident['recommended_actions']['immediate'][:2])}
+- Court terme: {', '.join(incident['recommended_actions']['short_term'][:2])}
+
+---
+"""
+        
+        # Sauvegarde du rapport
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        report_filename = f"reports/classification_report_{timestamp}.md"
+        
+        with open(report_filename, 'w', encoding='utf-8') as f:
+            f.write(report)
+        
+        # Sauvegarde des données JSON pour analyse ultérieure
+        json_filename = f"reports/classification_data_{timestamp}.json"
+        with open(json_filename, 'w', encoding='utf-8') as f:
+            json.dump(classified_incidents, f, indent=2, default=str)
+        
+        print(f"[+] Rapport de classification généré: {report_filename}")
+        print(f"[+] Données JSON sauvegardées: {json_filename}")
+        
+        return report, classified_incidents
+    
+    # Méthodes utilitaires
+    def _severity_to_score(self, severity):
+        return {'low': 1, 'medium': 3, 'high': 5, 'critical': 7}.get(severity, 3)
+    
+    def _generate_incident_id(self):
+        return f"INC-{datetime.now().strftime('%Y%m%d%H%M%S')}-{np.random.randint(1000, 9999)}"
+    
+    def _check_ip_reputation(self, ip):
+        # Simulation - dans un vrai environnement, interroger des services comme VirusTotal
+        suspicious_ranges = ['185.220.', '77.247.', '195.123.']
+        return 0.2 if any(ip.startswith(range_) for range_ in suspicious_ranges) else 0.8
+    
+    def _is_internal_ip(self, ip):
+        import ipaddress
+        try:
+            ip_obj = ipaddress.ip_address(ip)
+            return ip_obj.is_private
+        except:
+            return False
+    
+    def _assess_sophistication(self, incident_data):
+        # Évaluation basée sur la complexité des patterns d'attaque
+        sophistication_indicators = [
+            'encrypted_payload', 'polymorphic_code', 'zero_day_exploit',
+            'advanced_evasion', 'multi_stage_attack'
+        ]
+        tags = incident_data.get('tags', [])
+        score = sum(1 for indicator in sophistication_indicators if indicator in tags)
+        return min(1.0, score / len(sophistication_indicators))
+    
+    def _detect_evasion_techniques(self, incident_data):
+        evasion_indicators = []
+        request = incident_data.get('request', '').lower()
+        
+        if '%' in request:  # URL encoding
+            evasion_indicators.append('url_encoding')
+        if 'char(' in request:  # SQL character functions
+            evasion_indicators.append('sql_char_functions')
+        if len(request) > 1000:  # Oversized requests
+            evasion_indicators.append('oversized_request')
+        
+        return evasion_indicators
+    
+    def _check_persistence(self, incident_data):
+        persistence_tags = ['scheduled_task', 'registry_modification', 'service_creation', 'startup_modification']
+        return any(tag in incident_data.get('tags', []) for tag in persistence_tags)
+    
+    def _detect_lateral_movement(self, incident_data):
+        movement_indicators = ['smb_enumeration', 'rdp_connections', 'credential_dumping', 'network_discovery']
+        return any(indicator in incident_data.get('tags', []) for indicator in movement_indicators)
+    
+    def _check_data_exfiltration(self, incident_data):
+        exfiltration_tags = ['large_data_transfer', 'dns_tunneling', 'encrypted_channel', 'unusual_upload']
+        return any(tag in incident_data.get('tags', []) for tag in exfiltration_tags)
+    
+    def _assess_business_criticality(self, incident_data):
+        affected_systems = incident_data.get('affected_systems', [])
+        critical_systems = ['database_server', 'domain_controller', 'payment_system', 'customer_portal']
+        
+        if any(system in critical_systems for system in affected_systems):
+            return 'critical'
+        elif 'production' in str(affected_systems).lower():
+            return 'high'
+        else:
+            return 'medium'
+    
+    def _assess_data_sensitivity(self, incident_data):
+        data_types = incident_data.get('data_types', [])
+        if any(dt in ['pii', 'financial', 'medical'] for dt in data_types):
+            return 'confidential'
+        elif any(dt in ['internal', 'proprietary'] for dt in data_types):
+            return 'sensitive'
+        else:
+            return 'public'
+    
+    def _check_regulatory_implications(self, incident_data):
+        regulations = []
+        data_types = incident_data.get('data_types', [])
+        
+        if 'pii' in data_types:
+            regulations.extend(['GDPR', 'CCPA'])
+        if 'financial' in data_types:
+            regulations.append('PCI-DSS')
+        if 'medical' in data_types:
+            regulations.append('HIPAA')
+        
+        return regulations
+    
+    def _calculate_business_impact(self, features):
+        criticality_scores = {'critical': 1.0, 'high': 0.7, 'medium': 0.4, 'low': 0.1}
+        return criticality_scores.get(features['contextual']['business_criticality'], 0.4)
+    
+    def _calculate_data_sensitivity_score(self, features):
+        sensitivity_scores = {'confidential': 1.0, 'sensitive': 0.6, 'public': 0.2}
+        return sensitivity_scores.get(features['contextual']['data_sensitivity'], 0.4)
+    
+    def _calculate_confidence(self, incident_data, features):
+        confidence_factors = []
+        
+        # Qualité des données
+        if incident_data.get('source_ip'):
+            confidence_factors.append(0.2)
+        if incident_data.get('timestamp'):
+            confidence_factors.append(0.2)
+        if incident_data.get('tags'):
+            confidence_factors.append(0.3)
+        
+        # Corrélation avec patterns connus
+        if features['behavioral']['attack_sophistication'] > 0.5:
+            confidence_factors.append(0.3)
+        
+        return sum(confidence_factors)
+    
+    def _requires_escalation(self, severity, risk_score):
+        """Détermine si l'incident nécessite une escalade"""
+        return severity in ['critical', 'high'] or risk_score >= 75
+    
+    def _estimate_impact(self, incident_data, features, severity):
+        """Estimation de l'impact de l'incident"""
+        impact_levels = {
+            'critical': 'Impact majeur sur les opérations business critiques',
+            'high': 'Impact significatif sur les services ou données sensibles',
+            'medium': 'Impact modéré sur les opérations normales',
+            'low': 'Impact minimal sur les systèmes non-critiques'
+        }
+        return impact_levels.get(severity, 'Impact à déterminer')
+    
+    def _analyze_temporal_pattern(self, incident_data):
+        """Analyse des patterns temporels"""
+        # Dans un environnement réel, analyser les tendances historiques
+        return 'normal'  # Placeholder
+
+# Utilisation
+if __name__ == "__main__":
+    classifier = AdvancedIncidentClassifier()
+    
+    # Exemple d'incident à classifier
+    sample_incident = {
+        'type': 'brute_force_attack',
+        'source_ip': '185.220.100.45',
+        'total_attempts': 150,
+        'targeted_users': ['admin', 'root'],
+        'tags': ['failed_login', 'brute_force_attempt'],
+        'affected_systems': ['web_server', 'database_server'],
+        'duration': 1800,  # 30 minutes
+        'data_types': ['pii', 'financial']
+    }
+    
+    classification = classifier.classify_incident(sample_incident)
+    print(json.dumps(classification, indent=2, default=str))
+```
+
+### 4.2 Corrélateur d'alertes intelligent
+
+![Correlation](https://img.shields.io/badge/Tool-Alert%20Correlator-purple)
+![AI Enhanced](https://img.shields.io/badge/Technology-AI%20Enhanced-blue)
+
+```python
+#!/usr/bin/env python3
+# scripts/alert_correlation.py
+
+import json
+import numpy as np
+from datetime import datetime, timedelta
+from collections import defaultdict, deque
+import networkx as nx
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+
+class IntelligentAlertCorrelator:
+    def __init__(self, elasticsearch_url="http://localhost:9200"):
+        self.es_url = elasticsearch_url
+        self.correlation_window = timedelta(hours=1)
+        self.alert_buffer = deque(maxlen=10000)
+        self.correlation_rules = self._load_correlation_rules()
+        self.attack_patterns = self._initialize_attack_patterns()
+        
+    def _load_correlation_rules(self):
+        """Chargement des règles de corrélation"""
+        return {
+            # Règles pour campagnes coordonnées
+            'coordinated_attack': {
+                'conditions': [
+                    {'type': 'brute_force_attack', 'min_sources': 3, 'time_window': 300},
+                    {'type': 'port_scan', 'same_targets': True, 'time_window': 600},
+                    {'type': 'web_attack', 'same_payload_family': True, 'time_window': 900}
+                ],
+                'correlation_threshold': 0.7,
+                'severity_escalation': 'high'
+            },
+            
+            # Règles pour attaques multi-étapes
+            'multi_stage_attack': {
+                'sequence': [
+                    'reconnaissance',
+                    'initial_access',
+                    'privilege_escalation',
+                    'lateral_movement',
+                    'data_exfiltration'
+                ],
+                'max_time_between_stages': 3600,  # 1 heure
+                'min_stages_matched': 3,
+                'severity_escalation': 'critical'
+            },
+            
+            # Règles pour attaques distribuées
+            'distributed_attack': {
+                'conditions': {
+                    'min_unique_sources': 10,
+                    'max_geographic_variance': 5000,  # km
+                    'attack_synchronization': 0.8,
+                    'time_window': 1800  # 30 minutes
+                },
+                'severity_escalation': 'high'
+            },
+            
+            # Règles pour compromission d'infrastructure
+            'infrastructure_compromise': {
+                'indicators': [
+                    'privileged_account_abuse',
+                    'system_modification',
+                    'network_configuration_change',
+                    'security_tool_disable'
+                ],
+                'correlation_methods': ['temporal', 'source_based', 'target_based'],
+                'severity_escalation': 'critical'
+            }
+        }
+    
+    def _initialize_attack_patterns(self):
+        """Initialisation des patterns d'attaque connus"""
+        return {
+            'apt_patterns': {
+                'lateral_movement': {
+                    'sequence': ['reconnaissance', 'credential_theft', 'remote_access'],
+                    'tools': ['psexec', 'wmic', 'powershell'],
+                    'persistence': ['registry', 'scheduled_tasks', 'services']
+                },
+                'data_exfiltration': {
+                    'preparation': ['data_discovery', 'data_staging', 'compression'],
+                    'channels': ['dns_tunneling', 'https_upload', 'email_exfiltration']
+                }
+            },
+            'automated_attacks': {
+                'bot_campaigns': {
+                    'characteristics': ['high_volume', 'distributed_sources', 'similar_payloads'],
+                    'targets': ['login_pages', 'api_endpoints', 'contact_forms']
+                },
+                'vulnerability_exploitation': {
+                    'phases': ['scanning', 'exploitation', 'payload_delivery'],
+                    'indicators': ['cve_patterns', 'exploit_signatures', 'shell_commands']
+                }
+            }
+        }
+    
+    def correlate_alerts(self, alerts):
+        """Corrélation principale des alertes"""
+        print(f"[+] Corrélation de {len(alerts)} alertes...")
+        
+        # Preprocessing des alertes
+        processed_alerts = self._preprocess_alerts(alerts)
+        
+        # Application des différentes méthodes de corrélation
+        correlations = {
+            'temporal': self._temporal_correlation(processed_alerts),
+            'spatial': self._spatial_correlation(processed_alerts),
+            'behavioral': self._behavioral_correlation(processed_alerts),
+            'pattern_based': self._pattern_based_correlation(processed_alerts),
+            'ml_clustering': self._ml_based_correlation(processed_alerts)
+        }
+        
+        # Fusion des corrélations
+        merged_correlations = self._merge_correlations(correlations)
+        
+        # Génération des incidents corrélés
+        correlated_incidents = self._generate_correlated_incidents(merged_correlations)
+        
+        # Évaluation de la confiance et priorisation
+        prioritized_incidents = self._prioritize_correlated_incidents(correlated_incidents)
+        
+        return prioritized_incidents
+    
+    def _preprocess_alerts(self, alerts):
+        """Préprocessing et enrichissement des alertes"""
+        processed = []
+        
+        for alert in alerts:
+            # Extraction et normalisation des caractéristiques
+            features = {
+                'id': alert.get('id', self._generate_alert_id()),
+                'timestamp': self._parse_timestamp(alert.get('timestamp')),
+                'source_ip': alert.get('source_ip', ''),
+                'target_ip': alert.get('target_ip', ''),
+                'alert_type': alert.get('type', ''),
+                'severity': alert.get('severity', 'medium'),
+                'tags': alert.get('tags', []),
+                'payload': alert.get('payload', ''),
+                'user_agent': alert.get('user_agent', ''),
+                'geographic_info': alert.get('geoip', {}),
+                'network_info': self._extract_network_info(alert),
+                'behavioral_info': self._extract_behavioral_info(alert)
+            }
+            
+            # Enrichissement avec des données contextuelles
+            features.update(self._enrich_alert_context(features))
+            
+            processed.append(features)
+        
+        return processed
+    
+    def _temporal_correlation(self, alerts):
+        """Corrélation temporelle des alertes"""
+        temporal_groups = defaultdict(list)
+        
+        # Regroupement par fenêtres temporelles
+        for alert in alerts:
+            time_bucket = self._get_time_bucket(alert['timestamp'], bucket_size=300)  # 5 min
+            temporal_groups[time_bucket].append(alert)
+        
+        correlations = []
+        for time_bucket, group_alerts in temporal_groups.items():
+            if len(group_alerts) >= 3:  # Minimum 3 alertes pour corrélation
+                correlation = {
+                    'type': 'temporal',
+                    'time_window': time_bucket,
+                    'alerts': group_alerts,
+                    'correlation_score': self._calculate_temporal_score(group_alerts),
+                    'characteristics': self._analyze_temporal_pattern(group_alerts)
+                }
+                correlations.append(correlation)
+        
+        return correlations
+    
+    def _spatial_correlation(self, alerts):
+        """Corrélation spatiale (géographique et réseau)"""
+        spatial_groups = defaultdict(list)
+        
+        # Regroupement par source IP
+        for alert in alerts:
+            source_ip = alert['source_ip']
+            if source_ip:
+                # Regroupement par sous-réseau /24
+                network = '.'.join(source_ip.split('.')[:3]) + '.0/24'
+                spatial_groups[network].append(alert)
+        
+        correlations = []
+        for network, group_alerts in spatial_groups.items():
+            if len(group_alerts) >= 2:
+                correlation = {
+                    'type': 'spatial',
+                    'network': network,
+                    'alerts': group_alerts,
+                    'correlation_score': self._calculate_spatial_score(group_alerts),
+                    'geographic_analysis': self._analyze_geographic_distribution(group_alerts)
+                }
+                correlations.append(correlation)
+        
+        return correlations
+    
+    def _behavioral_correlation(self, alerts):
+        """Corrélation comportementale"""
+        behavioral_groups = defaultdict(list)
+        
+        # Regroupement par patterns comportementaux
+        for alert in alerts:
+            behavior_signature = self._generate_behavior_signature(alert)
+            behavioral_groups[behavior_signature].append(alert)
+        
+        correlations = []
+        for signature, group_alerts in behavioral_groups.items():
+            if len(group_alerts) >= 2 and signature != 'unknown':
+                correlation = {
+                    'type': 'behavioral',
+                    'behavior_signature': signature,
+                    'alerts': group_alerts,
+                    'correlation_score': self._calculate_behavioral_score(group_alerts),
+                    'attack_pattern': self._identify_attack_pattern(group_alerts)
+                }
+                correlations.append(correlation)
+        
+        return correlations
+    
+    def _pattern_based_correlation(self, alerts):
+        """Corrélation basée sur des patterns d'attaque connus"""
+        correlations = []
+        
+        # Recherche de patterns APT
+        apt_correlation = self._detect_apt_patterns(alerts)
+        if apt_correlation:
+            correlations.append(apt_correlation)
+        
+        # Recherche de campagnes automatisées
+        bot_correlation = self._detect_bot_campaigns(alerts)
+        if bot_correlation:
+            correlations.append(bot_correlation)
+        
+        # Recherche d'attaques multi-étapes
+        multistage_correlation = self._detect_multistage_attacks(alerts)
+        if multistage_correlation:
+            correlations.append(multistage_correlation)
+        
+        return correlations
+    
+    def _ml_based_correlation(self, alerts):
+        """Corrélation basée sur l'apprentissage automatique"""
+        if len(alerts) < 5:
+            return []
+        
+        # Extraction des features pour clustering
+        features_matrix = self._extract_ml_features(alerts)
+        
+        # Normalisation
+        scaler = StandardScaler()
+        features_normalized = scaler.fit_transform(features_matrix)
+        
+        # Clustering DBSCAN pour identifier les groupes d'alertes similaires
+        clustering = DBSCAN(eps=0.5, min_samples=3)
+        cluster_labels = clustering.fit_predict(features_normalized)
+        
+        # Création des corrélations basées sur les clusters
+        correlations = []
+        unique_clusters = set(cluster_labels)
+        unique_clusters.discard(-1)  # Retirer les outliers
+        
+        for cluster_id in unique_clusters:
+            cluster_alerts = [alerts[i] for i, label in enumerate(cluster_labels) if label == cluster_id]
+            
+            if len(cluster_alerts) >= 3:
+                correlation = {
+                    'type': 'ml_clustering',
+                    'cluster_id': cluster_id,
+                    'alerts': cluster_alerts,
+                    'correlation_score': self._calculate_ml_correlation_score(cluster_alerts, features_matrix),
+                    'cluster_characteristics': self._analyze_cluster_characteristics(cluster_alerts)
+                }
+                correlations.append(correlation)
+        
+        return correlations
+    
+    def _merge_correlations(self, correlation_dict):
+        """Fusion des différents types de corrélations"""
+        all_correlations = []
+        
+        # Collecte de toutes les corrélations
+        for corr_type, correlations in correlation_dict.items():
+            for correlation in correlations:
+                correlation['method'] = corr_type
+                all_correlations.append(correlation)
+        
+        # Fusion des corrélations qui se chevauchent
+        merged = []
+        processed_alerts = set()
+        
+        # Tri par score de corrélation décroissant
+        all_correlations.sort(key=lambda x: x['correlation_score'], reverse=True)
+        
+        for correlation in all_correlations:
+            alert_ids = {alert['id'] for alert in correlation['alerts']}
+            
+            # Vérifier le chevauchement avec des corrélations déjà traitées
+            if not alert_ids.intersection(processed_alerts):
+                merged.append(correlation)
+                processed_alerts.update(alert_ids)
+            else:
+                # Tentative de fusion si chevauchement partiel significatif
+                overlap_ratio = len(alert_ids.intersection(processed_alerts)) / len(alert_ids)
+                if overlap_ratio < 0.5:  # Moins de 50% de chevauchement
+                    # Créer une nouvelle corrélation avec les alertes non traitées
+                    new_alerts = [alert for alert in correlation['alerts'] 
+                                if alert['id'] not in processed_alerts]
+                    if len(new_alerts) >= 2:
+                        new_correlation = correlation.copy()
+                        new_correlation['alerts'] = new_alerts
+                        new_correlation['correlation_score'] *= (1 - overlap_ratio)
+                        merged.append(new_correlation)
+                        processed_alerts.update({alert['id'] for alert in new_alerts})
+        
+        return merged
+    
+    def _generate_correlated_incidents(self, correlations):
+        """Génération d'incidents corrélés à partir des corrélations"""
+        incidents = []
+        
+        for correlation in correlations:
+            incident = {
+                'id': self._generate_incident_id(),
+                'timestamp': datetime.now().isoformat(),
+                'correlation_method': correlation['method'],
+                'correlation_type': correlation['type'],
+                'correlation_score': correlation['correlation_score'],
+                'related_alerts': correlation['alerts'],
+                'alert_count': len(correlation['alerts']),
+                'time_span': self._calculate_time_span(correlation['alerts']),
+                'affected_sources': self._extract_unique_sources(correlation['alerts']),
+                'affected_targets': self._extract_unique_targets(correlation['alerts']),
+                'severity': self._calculate_incident_severity(correlation),
+                'confidence': self._calculate_correlation_confidence(correlation),
+                'attack_vector': self._determine_attack_vector(correlation),
+                'kill_chain_stage': self._identify_kill_chain_stage(correlation),
+                'description': self._generate_incident_description(correlation),
+                'recommended_response': self._suggest_incident_response(correlation)
+            }
+            
+            incidents.append(incident)
+        
+        return incidents
+    
+    def _prioritize_correlated_incidents(self, incidents):
+        """Priorisation des incidents corrélés"""
+        # Calcul du score de priorité pour chaque incident
+        for incident in incidents:
+            priority_score = 0
+            
+            # Facteurs de priorité
+            severity_weights = {'low': 1, 'medium': 3, 'high': 7, 'critical': 10}
+            priority_score += severity_weights.get(incident['severity'], 3)
+            
+            # Score de corrélation
+            priority_score += incident['correlation_score'] * 5
+            
+            # Nombre d'alertes impliquées
+            priority_score += min(incident['alert_count'] / 10, 3)
+            
+            # Confiance dans la corrélation
+            priority_score += incident['confidence'] * 3
+            
+            # Facteurs d'aggravation
+            if 'critical_infrastructure' in incident.get('affected_targets', []):
+                priority_score += 5
+            if incident.get('kill_chain_stage') in ['actions_on_objectives', 'data_exfiltration']:
+                priority_score += 4
+            
+            incident['priority_score'] = priority_score
+            incident['priority_level'] = self._assign_priority_level(priority_score)
+        
+        # Tri par score de priorité
+        return sorted(incidents, key=lambda x: x['priority_score'], reverse=True)
+    
+    def generate_correlation_report(self, incidents):
+        """Génération d'un rapport de corrélation"""
+        if not incidents:
+            return "Aucune corrélation détectée."
+        
+        # Analyses statistiques
+        correlation_methods = defaultdict(int)
+        severity_distribution = defaultdict(int)
+        attack_vectors = defaultdict(int)
+        
+        total_alerts_correlated = sum(incident['alert_count'] for incident in incidents)
+        avg_correlation_score = np.mean([incident['correlation_score'] for incident in incidents])
+        
+        for incident in incidents:
+            correlation_methods[incident['correlation_method']] += 1
+            severity_distribution[incident['severity']] += 1
+            attack_vectors[incident['attack_vector']] += 1
+        
+        # Génération du rapport
+        report = f"""
+![Correlation Report](https://img.shields.io/badge/Report-Alert%20Correlation-purple)
+![Incidents](https://img.shields.io/badge/Correlated%20Incidents-{len(incidents)}-blue)
+![Alerts](https://img.shields.io/badge/Total%20Alerts%20Correlated-{total_alerts_correlated}-orange)
+![Avg Score](https://img.shields.io/badge/Avg%20Correlation%20Score-{avg_correlation_score:.2f}-green)
+
+# 🔗 RAPPORT DE CORRÉLATION D'ALERTES
+
+**Période d'analyse**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**Incidents corrélés**: {len(incidents)}  
+**Total d'alertes corrélées**: {total_alerts_correlated}  
+**Score de corrélation moyen**: {avg_correlation_score:.3f}
+
+## 📊 Méthodes de corrélation utilisées
+
+"""
+        
+        for method, count in correlation_methods.most_common():
+            percentage = (count / len(incidents)) * 100
+            report += f"- ![{method}](https://img.shields.io/badge/{method.replace('_', '%20')}-{count}%20({percentage:.1f}%%)-lightblue)\n"
+        
+        report += f"\n## 🎯 Distribution par sévérité\n\n"
+        
+        for severity in ['critical', 'high', 'medium', 'low']:
+            count = severity_distribution[severity]
+            if count > 0:
+                percentage = (count / len(incidents)) * 100
+                color = {'critical': 'red', 'high': 'orange', 'medium': 'yellow', 'low': 'green'}[severity]
+                report += f"- ![{severity}](https://img.shields.io/badge/Severity-{severity.upper()}-{color}) {count} incidents ({percentage:.1f}%)\n"
+        
+        report += f"\n## 🎯 Vecteurs d'attaque identifiés\n\n"
+        
+        for vector, count in attack_vectors.most_common():
+            percentage = (count / len(incidents)) * 100
+            report += f"- **{vector.replace('_', ' ').title()}**: {count} incidents ({percentage:.1f}%)\n"
+        
+        report += f"\n## 🚨 Incidents corrélés prioritaires\n\n"
+        
+        # Top 10 des incidents les plus prioritaires
+        for i, incident in enumerate(incidents[:10], 1):
+            severity_color = {'critical': 'red', 'high': 'orange', 'medium': 'yellow', 'low': 'green'}.get(incident['severity'], 'grey')
+            
+            report += f"""
+### {i}. Incident Corrélé #{incident['id']}
+![Priority](https://img.shields.io/badge/Priority-{incident['priority_level'].replace(' ', '%20')}-red)
+![Severity](https://img.shields.io/badge/Severity-{incident['severity'].upper()}-{severity_color})
+![Correlation](https://img.shields.io/badge/Correlation%20Score-{incident['correlation_score']:.2f}-blue)
+![Confidence](https://img.shields.io/badge/Confidence-{incident['confidence']:.1%}-green)
+
+**Description**: {incident['description']}  
+**Méthode de corrélation**: {incident['correlation_method']}  
+**Alertes impliquées**: {incident['alert_count']}  
+**Durée**: {incident['time_span']}  
+**Vecteur d'attaque**: {incident['attack_vector']}  
+**Phase kill chain**: {incident['kill_chain_stage']}
+
+**Sources affectées**: {len(incident['affected_sources'])} IPs uniques  
+**Cibles affectées**: {len(incident['affected_targets'])} systèmes  
+
+**Réponse recommandée**: {incident['recommended_response']}
+
+---
+"""
+        
+        # Sauvegarde du rapport
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        report_filename = f"reports/correlation_report_{timestamp}.md"
+        
+        with open(report_filename, 'w', encoding='utf-8') as f:
+            f.write(report)
+        
+        # Sauvegarde des données JSON
+        json_filename = f"reports/correlation_data_{timestamp}.json"
+        with open(json_filename, 'w', encoding='utf-8') as f:
+            json.dump(incidents, f, indent=2, default=str)
+        
+        print(f"[+] Rapport de corrélation généré: {report_filename}")
+        print(f"[+] Données JSON sauvegardées: {json_filename}")
+        
+        return report, incidents
+    
+    # Méthodes utilitaires pour la corrélation
+    def _parse_timestamp(self, timestamp_str):
+        """Parse et normalise les timestamps"""
+        if isinstance(timestamp_str, str):
+            return datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        return timestamp_str or datetime.now()
+    
+    def _get_time_bucket(self, timestamp, bucket_size=300):
+        """Création de buckets temporels"""
+        epoch = timestamp.timestamp()
+        return int(epoch // bucket_size) * bucket_size
+    
+    def _generate_alert_id(self):
+        """Génération d'ID d'alerte unique"""
+        return f"ALT-{datetime.now().strftime('%Y%m%d%H%M%S')}-{np.random.randint(1000, 9999)}"
+    
+    def _generate_incident_id(self):
+        """Génération d'ID d'incident corrélé unique"""
+        return f"CORR-{datetime.now().strftime('%Y%m%d%H%M%S')}-{np.random.randint(1000, 9999)}"
+    
+    def _extract_network_info(self, alert):
+        """Extraction d'informations réseau"""
+        return {
+            'src_port': alert.get('src_port'),
+            'dst_port': alert.get('dst_port'),
+            'protocol': alert.get('protocol'),
+            'bytes_transferred': alert.get('bytes', 0)
+        }
+    
+    def _extract_behavioral_info(self, alert):
+        """Extraction d'informations comportementales"""
+        return {
+            'request_frequency': alert.get('frequency', 1),
+            'payload_size': len(alert.get('payload', '')),
+            'is_encrypted': 'encrypted' in alert.get('tags', []),
+            'uses_tor': 'tor' in alert.get('tags', [])
+        }
+    
+    def _enrich_alert_context(self, features):
+        """Enrichissement contextuel des alertes"""
+        enrichment = {}
+        
+        # Classification de l'IP source
+        if features['source_ip']:
+            enrichment['ip_reputation'] = self._check_ip_reputation(features['source_ip'])
+            enrichment['is_known_bad'] = enrichment['ip_reputation'] < 0.3
+        
+        # Analyse du payload
+        if features['payload']:
+            enrichment['payload_analysis'] = self._analyze_payload(features['payload'])
+        
+        return enrichment
+    
+    def _calculate_temporal_score(self, alerts):
+        """Calcul du score de corrélation temporelle"""
+        if len(alerts) < 2:
+            return 0.0
+        
+        # Analyse de la synchronisation temporelle
+        timestamps = [alert['timestamp'] for alert in alerts]
+        time_deltas = [(timestamps[i+1] - timestamps[i]).total_seconds() 
+                      for i in range(len(timestamps)-1)]
+        
+        # Score basé sur la régularité des intervalles
+        if time_deltas:
+            avg_delta = np.mean(time_deltas)
+            delta_variance = np.var(time_deltas)
+            
+            # Plus la variance est faible, plus le score est élevé
+            regularity_score = 1.0 / (1.0 + delta_variance / 100)
+            
+            # Bonus pour les attaques rapprochées dans le temps
+            time_proximity_score = 1.0 / (1.0 + avg_delta / 300)  # 5 minutes de référence
+            
+            return min(1.0, (regularity_score + time_proximity_score) / 2)
+        
+        return 0.5
+    
+    def _calculate_spatial_score(self, alerts):
+        """Calcul du score de corrélation spatiale"""
+        unique_sources = len(set(alert['source_ip'] for alert in alerts if alert['source_ip']))
+        total_alerts = len(alerts)
+        
+        if unique_sources == 0:
+            return 0.0
+        
+        # Score basé sur la concentration des sources
+        concentration_score = 1.0 / unique_sources if unique_sources > 0 else 1.0
+        
+        # Score basé sur le volume d'attaque
+        volume_score = min(1.0, total_alerts / 10)
+        
+        return (concentration_score + volume_score) / 2
+    
+    def _generate_behavior_signature(self, alert):
+        """Génération d'une signature comportementale"""
+        signature_elements = []
+        
+        # Type d'attaque
+        signature_elements.append(alert['alert_type'])
+        
+        # Patterns dans le payload
+        payload = alert.get('payload', '').lower()
+        if 'union' in payload and 'select' in payload:
+            signature_elements.append('sql_injection')
+        if 'script' in payload:
+            signature_elements.append('xss')
+        if '../' in payload:
+            signature_elements.append('path_traversal')
+        
+        # User Agent patterns
+        user_agent = alert.get('user_agent', '').lower()
+        if 'bot' in user_agent or 'crawler' in user_agent:
+            signature_elements.append('automated_tool')
+        if 'curl' in user_agent or 'wget' in user_agent:
+            signature_elements.append('command_line_tool')
+        
+        return '_'.join(signature_elements) if signature_elements else 'unknown'
+    
+    def _calculate_behavioral_score(self, alerts):
+        """Calcul du score de corrélation comportementale"""
+        if len(alerts) < 2:
+            return 0.0
+        
+        # Analyse de la similarité comportementale
+        behavior_elements = defaultdict(int)
+        
+        for alert in alerts:
+            signature = self._generate_behavior_signature(alert)
+            behavior_elements[signature] += 1
+        
+        # Score basé sur la cohérence comportementale
+        max_similar = max(behavior_elements.values())
+        consistency_score = max_similar / len(alerts)
+        
+        return consistency_score
+    
+    def _detect_apt_patterns(self, alerts):
+        """Détection de patterns APT"""
+        # Recherche de séquences caractéristiques d'APT
+        apt_stages = ['reconnaissance', 'initial_access', 'persistence', 'privilege_escalation', 
+                     'lateral_movement', 'data_collection', 'exfiltration']
+        
+        detected_stages = set()
+        stage_alerts = defaultdict(list)
+        
+        for alert in alerts:
+            for stage in apt_stages:
+                if any(keyword in ' '.join(alert.get('tags', [])) for keyword in self._get_stage_keywords(stage)):
+                    detected_stages.add(stage)
+                    stage_alerts[stage].append(alert)
+        
+        # Si au moins 3 stages sont détectés, considérer comme APT
+        if len(detected_stages) >= 3:
+            all_apt_alerts = []
+            for alerts_list in stage_alerts.values():
+                all_apt_alerts.extend(alerts_list)
+            
+            return {
+                'type': 'apt_pattern',
+                'alerts': all_apt_alerts,
+                'detected_stages': list(detected_stages),
+                'correlation_score': len(detected_stages) / len(apt_stages),
+                'attack_sophistication': 'high'
+            }
+        
+        return None
+    
+    def _detect_bot_campaigns(self, alerts):
+        """Détection de campagnes de bots"""
+        # Groupement par caractéristiques de bot
+        bot_characteristics = defaultdict(list)
+        
+        for alert in alerts:
+            # Identification des caractéristiques de bot
+            characteristics = []
+            
+            user_agent = alert.get('user_agent', '').lower()
+            if any(bot_indicator in user_agent for bot_indicator in ['bot', 'crawler', 'spider', 'scraper']):
+                characteristics.append('bot_user_agent')
