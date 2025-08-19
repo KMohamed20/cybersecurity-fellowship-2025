@@ -1,0 +1,24 @@
+#!/bin/bash
+# setup_environment.sh
+echo "=== Configuration de l'environnement de test ==="
+
+# Mise à jour du système
+sudo apt update && sudo apt upgrade -y
+
+# Installation des outils essentiels
+sudo apt install -y git curl wget python3 python3-pip docker.io
+
+# Installation des outils de sécurité
+sudo apt install -y nmap sqlmap burpsuite zaproxy wireshark
+
+# Installation de DVWA (Damn Vulnerable Web Application)
+cd /opt
+sudo git clone https://github.com/digininja/DVWA.git  
+cd DVWA
+sudo chmod 777 hackable/uploads/
+sudo chmod 666 external/phpids/0.6/lib/IDS/tmp/phpids_log.txt
+
+# Configuration Apache/PHP/MySQL
+sudo apt install -y apache2 mysql-server php php-mysqli php-gd libapache2-mod-php
+
+echo "Environnement configuré avec succès !"
